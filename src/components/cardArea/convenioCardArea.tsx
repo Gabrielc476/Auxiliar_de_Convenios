@@ -38,7 +38,11 @@ export default function ConveniosCardsArea() {
           </p>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 max-w-7xl mx-auto">
             {municipio.convenios.map((conv, index) => (
-              <ConvenioCard key={index} data={conv} />
+              <ConvenioCard
+                key={index}
+                data={conv}
+                municipio={municipio.municipio}
+              />
             ))}
           </div>
         </div>
