@@ -22,7 +22,7 @@ import {
 } from "lucide-react";
 
 const Sidebar = () => (
-  <div className="w-64 bg-gradient-to-b from-gray-900 to-gray-800 p-6 flex flex-col h-screen">
+  <div className="w-64 bg-gradient-to-b from-gray-900 to-gray-800 p-6 flex flex-col h-full">
     <div className="flex items-center gap-3 mb-8">
       <Avatar className="h-12 w-12">
         <AvatarImage src="/placeholder.svg?height=40&width=40" alt="User" />
@@ -94,8 +94,15 @@ interface LayoutProps {
 export default function Layout({ children }: LayoutProps) {
   return (
     <div className="flex min-h-screen bg-gray-900 text-white">
-      <Sidebar />
-      <div className="flex-1 flex flex-col">
+      {/* Sidebar com posição fixa */}
+      <div className="fixed left-0 top-0 h-screen z-50">
+        <Sidebar />
+      </div>
+
+      {/* Conteúdo principal com margem para a sidebar */}
+      <div className="flex-1 flex flex-col ml-64">
+        {" "}
+        {/* ml-64 = margin-left igual à largura da sidebar */}
         <Header />
         <main className="flex-1 p-6 overflow-auto">{children}</main>
         <footer className="bg-gray-800 p-4 text-center text-gray-400 text-sm">
@@ -103,7 +110,7 @@ export default function Layout({ children }: LayoutProps) {
         </footer>
       </div>
 
-      {/* Botões de navegação */}
+      {/* Botões de navegação ajustados */}
       <TooltipProvider>
         <Tooltip>
           <TooltipTrigger asChild>
