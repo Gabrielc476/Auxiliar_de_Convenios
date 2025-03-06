@@ -1,6 +1,6 @@
 "use client";
 
-import { ReactNode } from "react";
+import { ReactNode, useState, useContext, createContext } from "react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -20,6 +20,19 @@ import {
   Settings,
   Users,
 } from "lucide-react";
+
+// Contexto para busca
+interface SearchContextType {
+  searchQuery: string;
+  setSearchQuery: (query: string) => void;
+}
+
+const SearchContext = createContext<SearchContextType>({
+  searchQuery: "",
+  setSearchQuery: () => {},
+});
+
+export const useSearch = () => useContext(SearchContext);
 
 const Sidebar = () => (
   <div className="w-64 bg-gradient-to-b from-gray-900 to-gray-800 p-6 flex flex-col h-full">
@@ -60,81 +73,90 @@ const Sidebar = () => (
   </div>
 );
 
-const Header = () => (
-  <header className="bg-gray-800 p-4 flex justify-between items-center">
-    <h1 className="text-white text-xl font-bold">Dashboard</h1>
-    <div className="flex items-center gap-4">
-      <div className="relative">
-        <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 text-gray-400" />
-        <Input
-          className="pl-8 bg-gray-700 border-gray-600 text-white"
-          placeholder="Search..."
-        />
+const Header = () => {
+  const { searchQuery, setSearchQuery } = useSearch();
+
+  return (
+    <header className="bg-gray-800 p-4 flex justify-between items-center">
+      <h1 className="text-white text-xl font-bold">Convênios Municipais</h1>
+      <div className="flex items-center gap-4">
+        <div className="relative">
+          <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 text-gray-400" />
+          <Input
+            className="pl-8 bg-gray-700 border-gray-600 text-white"
+            placeholder="Pesquisar por número ou objeto..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+          />
+        </div>
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button variant="outline" size="icon">
+                <Settings className="h-4 w-4" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p>Configurações</p>
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
       </div>
-      <TooltipProvider>
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <Button variant="outline" size="icon">
-              <Settings className="h-4 w-4" />
-            </Button>
-          </TooltipTrigger>
-          <TooltipContent>
-            <p>Settings</p>
-          </TooltipContent>
-        </Tooltip>
-      </TooltipProvider>
-    </div>
-  </header>
-);
+    </header>
+  );
+};
 
 interface LayoutProps {
   children: ReactNode;
 }
 
 export default function Layout({ children }: LayoutProps) {
+  const [searchQuery, setSearchQuery] = useState("");
+
   return (
-    <div className="flex min-h-screen bg-gray-900 text-white">
-      {/* Sidebar com posição fixa */}
-      <div className="fixed left-0 top-0 h-screen z-50">
-        <Sidebar />
-      </div>
+    <SearchContext.Provider value={{ searchQuery, setSearchQuery }}>
+      <div className="flex min-h-screen bg-gray-900 text-white">
+        {/* Sidebar Fixa */}
+        <div className="fixed left-0 top-0 h-screen z-50">
+          <Sidebar />
+        </div>
 
-      {/* Conteúdo principal com margem para a sidebar */}
-      <div className="flex-1 flex flex-col ml-64">
-        {" "}
-        {/* ml-64 = margin-left igual à largura da sidebar */}
-        <Header />
-        <main className="flex-1 p-6 overflow-auto">{children}</main>
-        <footer className="bg-gray-800 p-4 text-center text-gray-400 text-sm">
-          © 2025 Dashboard Inc. All rights reserved.
-        </footer>
-      </div>
+        {/* Conteúdo Principal */}
+        <div className="flex-1 flex flex-col ml-64">
+          <Header />
+          <main className="flex-1 p-6 overflow-auto">{children}</main>
+          <footer className="bg-gray-800 p-4 text-center text-gray-400 text-sm">
+            © {new Date().getFullYear()} Sistema de Convênios. Todos os direitos
+            reservados.
+          </footer>
+        </div>
 
-      {/* Botões de navegação ajustados */}
-      <TooltipProvider>
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <button className="fixed left-4 bottom-4 w-10 h-10 bg-gray-700 rounded-full flex items-center justify-center text-white hover:bg-gray-600 transition-colors">
-              <ChevronLeft className="h-6 w-6" />
-            </button>
-          </TooltipTrigger>
-          <TooltipContent side="right">
-            <p>Previous</p>
-          </TooltipContent>
-        </Tooltip>
-      </TooltipProvider>
-      <TooltipProvider>
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <button className="fixed right-4 bottom-4 w-10 h-10 bg-gray-700 rounded-full flex items-center justify-center text-white hover:bg-gray-600 transition-colors">
-              <ChevronRight className="h-6 w-6" />
-            </button>
-          </TooltipTrigger>
-          <TooltipContent side="left">
-            <p>Next</p>
-          </TooltipContent>
-        </Tooltip>
-      </TooltipProvider>
-    </div>
+        {/* Botões de Navegação */}
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <button className="fixed left-4 bottom-4 w-10 h-10 bg-gray-700 rounded-full flex items-center justify-center text-white hover:bg-gray-600 transition-colors">
+                <ChevronLeft className="h-6 w-6" />
+              </button>
+            </TooltipTrigger>
+            <TooltipContent side="right">
+              <p>Voltar</p>
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <button className="fixed right-4 bottom-4 w-10 h-10 bg-gray-700 rounded-full flex items-center justify-center text-white hover:bg-gray-600 transition-colors">
+                <ChevronRight className="h-6 w-6" />
+              </button>
+            </TooltipTrigger>
+            <TooltipContent side="left">
+              <p>Avançar</p>
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
+      </div>
+    </SearchContext.Provider>
   );
 }

@@ -6,15 +6,14 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import axios from "axios";
-import { useAuth } from "@/contexts/authContext"; // Ajuste o caminho conforme necessário
 
-export default function LoginPage() {
+export default function Cadastro() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [name, setName] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const router = useRouter();
-  const { login } = useAuth(); // Use o hook no nível superior do componente
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -22,18 +21,19 @@ export default function LoginPage() {
     setError("");
 
     try {
-      const response = await axios.post("http://localhost:5000/login", {
+      const response = await axios.post("http://localhost:5000/cadastrar", {
         email,
         password,
+        name,
+        municipios: [],
       });
 
-      if (response.data.token) {
-        localStorage.setItem("token", response.data.token);
-        login(response.data); // Agora login() está acessível aqui
-        router.push("/dashboardPage");
+      if (response.data.success) {
+        router.push("/");
       }
     } catch (err) {
-      setError("Credenciais inválidas ou erro de conexão");
+      setError("Erro ao criar conta. Tente outro e-mail.");
+      console.log(err);
     } finally {
       setLoading(false);
     }
@@ -43,10 +43,21 @@ export default function LoginPage() {
     <div className="min-h-screen bg-gray-900 flex items-center justify-center">
       <div className="bg-gray-800 p-8 rounded-lg shadow-lg w-96">
         <h1 className="text-2xl font-bold text-white mb-6 text-center">
-          Acesso ao Sistema
+          Criar Nova Conta
         </h1>
 
         <form onSubmit={handleSubmit} className="space-y-6">
+          <div>
+            <label className="block text-gray-300 mb-2">Nome Completo</label>
+            <Input
+              type="text"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              className="bg-gray-700 text-white"
+              required
+            />
+          </div>
+
           <div>
             <label className="block text-gray-300 mb-2">E-mail</label>
             <Input
@@ -76,18 +87,15 @@ export default function LoginPage() {
             className="w-full bg-blue-600 hover:bg-blue-700"
             disabled={loading}
           >
-            {loading ? "Carregando..." : "Entrar"}
+            {loading ? "Criando conta..." : "Cadastrar"}
           </Button>
         </form>
 
         <div className="mt-4 text-center">
           <p className="text-gray-300">
-            Não tem uma conta?{" "}
-            <Link
-              href="/cadastrar"
-              className="text-blue-400 hover:text-blue-300"
-            >
-              Cadastre-se aqui
+            Já tem uma conta?{" "}
+            <Link href="/" className="text-blue-400 hover:text-blue-300">
+              Faça login aqui
             </Link>
           </p>
         </div>

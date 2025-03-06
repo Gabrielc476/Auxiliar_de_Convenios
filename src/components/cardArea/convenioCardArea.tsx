@@ -12,16 +12,22 @@ import {
   PaginationPrevious,
   PaginationNext,
 } from "@/components/ui/pagination";
+import { useSearch } from "../layout"; // Importe o contexto de busca
+import { MunicipioFilter } from "../municipioFilter";
+import { useAuth } from "@/contexts/authContext";
 
 export default function ConveniosCardsArea() {
+  const { searchQuery } = useSearch(); // Acesse o contexto de busca
   const [municipios, setMunicipios] = useState<Municipio[]>([]);
   const [loading, setLoading] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 6;
+  const { user } = useAuth();
+  const [selectedMunicipios, setSelectedMunicipios] = useState<string[]>([]);
 
   useEffect(() => {
     axios
-      .get<Municipio[]>("http://127.0.0.1:5000")
+      .get<Municipio[]>("http://localhost:5000/")
       .then((response) => {
         setMunicipios(response.data);
         setLoading(false);
@@ -32,12 +38,27 @@ export default function ConveniosCardsArea() {
       });
   }, []);
 
-  const allConvenios = municipios.flatMap((municipio) =>
-    municipio.convenios.map((convenio) => ({
-      ...convenio,
-      municipio: municipio.municipio,
-    }))
-  );
+  // Filtra os convênios com base na pesquisa
+  const allConvenios = municipios
+    .filter(
+      (m) =>
+        selectedMunicipios.length === 0 ||
+        selectedMunicipios.includes(m.municipio)
+    )
+    .flatMap((municipio) =>
+      municipio.convenios
+        .map((convenio) => ({
+          ...convenio,
+          municipio: municipio.municipio,
+        }))
+        .filter((convenio) => {
+          const searchLower = searchQuery.toLowerCase();
+          return (
+            convenio.convenio.toLowerCase().includes(searchLower) ||
+            convenio.objeto.toLowerCase().includes(searchLower)
+          );
+        })
+    );
 
   const currentConvenios = allConvenios.slice(
     (currentPage - 1) * itemsPerPage,
@@ -52,12 +73,28 @@ export default function ConveniosCardsArea() {
     return acc;
   }, {} as Record<string, typeof currentConvenios>);
 
+  // Resetar página quando a pesquisa mudar
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchQuery]);
+
   if (loading) {
     return <p className="text-white p-6">Carregando...</p>;
   }
 
   return (
     <div className="p-6 bg-gray-900">
+      <MunicipioFilter
+        selected={selectedMunicipios}
+        setSelected={setSelectedMunicipios}
+      />
+      {/* Mensagem se nenhum resultado for encontrado */}
+      {allConvenios.length === 0 && (
+        <p className="text-white text-center py-8">
+          Nenhum convênio encontrado para "{searchQuery}"
+        </p>
+      )}
+
       {Object.entries(conveniosPorMunicipio).map(([municipio, convenios]) => (
         <div key={municipio} className="mb-8">
           <h2 className="text-2xl font-bold text-white">{municipio}</h2>
@@ -76,51 +113,53 @@ export default function ConveniosCardsArea() {
         </div>
       ))}
 
-      {/* Área de paginação modificada */}
-      <Pagination className="mt-8">
-        <PaginationContent>
-          <PaginationItem>
-            <PaginationPrevious
-              href="#"
-              className="bg-gray-800 text-gray-300 hover:bg-gray-700 hover:text-white"
-              onClick={(e) => {
-                e.preventDefault();
-                currentPage > 1 && setCurrentPage(currentPage - 1);
-              }}
-            />
-          </PaginationItem>
-
-          {Array.from({
-            length: Math.ceil(allConvenios.length / itemsPerPage),
-          }).map((_, index) => (
-            <PaginationItem key={index}>
-              <PaginationLink
+      {/* Paginação */}
+      {allConvenios.length > 0 && (
+        <Pagination className="mt-8">
+          <PaginationContent>
+            <PaginationItem>
+              <PaginationPrevious
                 href="#"
+                className="bg-gray-800 text-gray-300 hover:bg-gray-700 hover:text-white"
                 onClick={(e) => {
                   e.preventDefault();
-                  setCurrentPage(index + 1);
+                  currentPage > 1 && setCurrentPage(currentPage - 1);
                 }}
-                isActive={currentPage === index + 1}
-                className="bg-gray-800 text-gray-300 hover:bg-gray-700 hover:text-white"
-              >
-                {index + 1}
-              </PaginationLink>
+              />
             </PaginationItem>
-          ))}
 
-          <PaginationItem>
-            <PaginationNext
-              href="#"
-              className="bg-gray-800 text-gray-300 hover:bg-gray-700 hover:text-white"
-              onClick={(e) => {
-                e.preventDefault();
-                currentPage < Math.ceil(allConvenios.length / itemsPerPage) &&
-                  setCurrentPage(currentPage + 1);
-              }}
-            />
-          </PaginationItem>
-        </PaginationContent>
-      </Pagination>
+            {Array.from({
+              length: Math.ceil(allConvenios.length / itemsPerPage),
+            }).map((_, index) => (
+              <PaginationItem key={index}>
+                <PaginationLink
+                  href="#"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    setCurrentPage(index + 1);
+                  }}
+                  isActive={currentPage === index + 1}
+                  className="bg-gray-800 text-gray-300 hover:bg-gray-700 hover:text-white"
+                >
+                  {index + 1}
+                </PaginationLink>
+              </PaginationItem>
+            ))}
+
+            <PaginationItem>
+              <PaginationNext
+                href="#"
+                className="bg-gray-800 text-gray-300 hover:bg-gray-700 hover:text-white"
+                onClick={(e) => {
+                  e.preventDefault();
+                  currentPage < Math.ceil(allConvenios.length / itemsPerPage) &&
+                    setCurrentPage(currentPage + 1);
+                }}
+              />
+            </PaginationItem>
+          </PaginationContent>
+        </Pagination>
+      )}
     </div>
   );
 }

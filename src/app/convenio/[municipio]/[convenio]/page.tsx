@@ -21,7 +21,7 @@ export default function ConvenioDetailPage() {
     if (municipio && convenio) {
       axios
         .get(
-          `http://127.0.0.1:5000/${encodeURIComponent(
+          `http://localhost:5000/${encodeURIComponent(
             municipio
           )}/${encodeURIComponent(convenio)}`
         )

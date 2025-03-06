@@ -1,5 +1,6 @@
 import "./globals.css"; // Seus estilos globais
 import Layout from "@/components/layout"; // Seu layout que você já criou
+import { AuthProvider } from "@/contexts/authContext";
 
 export const metadata = {
   title: "Dashboard",
@@ -12,10 +13,12 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en">
-      <body>
-        <Layout>{children}</Layout>
-      </body>
-    </html>
+    <AuthProvider>
+      <html lang="en">
+        <body>
+          <Layout>{children}</Layout>
+        </body>
+      </html>
+    </AuthProvider>
   );
 }
