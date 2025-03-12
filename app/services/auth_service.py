@@ -1,10 +1,12 @@
 import jwt
 import datetime
 from flask import current_app, jsonify
+from app.services.municipio_service import get_all_municipio_names
 from app.database.repositories.user_repo import find_user_by_email, create_user
 from app.utils.security import hash_password, verify_password
 
 
+# app/services/auth_service.py
 def login_user(auth_data):
     """Autenticar usuário e gerar token JWT."""
     user = find_user_by_email(auth_data['email'])
@@ -18,16 +20,18 @@ def login_user(auth_data):
         'exp': datetime.datetime.utcnow() + current_app.config['JWT_ACCESS_TOKEN_EXPIRES']
     }, current_app.config['JWT_SECRET_KEY'])
 
-    # Retornar token e dados do usuário
+    # Obter lista atualizada de municípios
+    municipios = get_all_municipio_names()  # Adicionar esta função
+
+    # Retornar token e dados do usuário com lista atualizada de municípios
     return jsonify({
         'token': token,
         'user': {
             'email': user['email'],
             'nome': user['nome'],
-            'municipios': user.get('municipios', [])
+            'municipios': municipios  # Usar lista atualizada em vez de user.get('municipios', [])
         }
     }), 200
-
 
 def register_user(user_data):
     """Cadastrar novo usuário."""
