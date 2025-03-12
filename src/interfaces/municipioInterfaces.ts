@@ -25,3 +25,16 @@ export interface Municipio {
   municipio: string;
   convenios: Convenio[];
 }
+
+export interface MunicipioDados {
+  id?: string;
+  municipio: string;
+  cnpj: string;
+  prefeito: string;
+  endereco: string;
+  e_mail: string;
+  telefone: string;
+  rg_prefeito: string;
+  cpf_prefeito: string;
+  operacional: string;
+}

@@ -22,37 +22,55 @@ import {
   Landmark,
   PercentCircle,
 } from "lucide-react";
-import { Convenio } from "../../interfaces/municipioInterfaces";
+import { Convenio } from "@/interfaces/municipioInterfaces";
 
 interface ConvenioCardProps {
   data: Convenio;
   municipio: string;
 }
 
-export function ConvenioCard({ data, municipio }: ConvenioCardProps) {
-  // Supondo que data.dados possui um único objeto com os campos (conforme seu modelo)
-  const dados = data.dados[0];
-  const percentExecucao = dados.percentual_execucao_obra;
-  const valorRepasse = dados.valor_repasse;
-  const vigencia = dados.vigencia_convenio;
-  const empresa = dados.empresa_executora;
-  console.log(data.convenio);
-  const getStatusColor = (percent: string) => {
-    const value = Number.parseInt(percent);
-    if (value === 100) return "bg-green-500";
-    if (value > 50) return "bg-yellow-500";
-    return "bg-blue-500";
-  };
+// Helper para determinar cor baseada no percentual
+const getStatusColor = (percent: string): string => {
+  const value = Number.parseInt(percent);
+  if (value === 100) return "bg-green-500";
+  if (value > 50) return "bg-yellow-500";
+  return "bg-blue-500";
+};
 
-  // Usamos o campo "convenio" como identificador na URL (encodeURIComponent para segurança)
+// Componente para informações com ícones
+interface InfoItemProps {
+  icon: React.ElementType;
+  label: string;
+  value: string;
+}
+
+const InfoItem = ({ icon: Icon, label, value }: InfoItemProps) => (
+  <div className="space-y-2">
+    <div className="flex items-center text-gray-400">
+      <Icon className="h-4 w-4 mr-2" />
+      <span className="text-xs">{label}</span>
+    </div>
+    <p className="text-white font-semibold">{value}</p>
+  </div>
+);
+
+export function ConvenioCard({ data, municipio }: ConvenioCardProps) {
+  const dados = data.dados[0];
+  const statusColor = getStatusColor(dados.percentual_execucao_obra);
+
+  // Formatação de dados da empresa
+  const empresaNome = dados.empresa_executora.includes(") ")
+    ? dados.empresa_executora.split(") ")[1]
+    : dados.empresa_executora;
+
+  // Parâmetros para URL
   const municipioParam = encodeURIComponent(municipio);
   const convenioParam = encodeURIComponent(data.convenio);
-  console.log(convenioParam);
-  console.log(municipioParam);
+
   return (
     <Link href={`/convenio/${municipioParam}/${convenioParam}`}>
       <Card className="bg-gray-800 border-gray-700 overflow-hidden hover:border-gray-600 transition-all cursor-pointer">
-        <div className={`h-1 ${getStatusColor(percentExecucao)}`} />
+        <div className={`h-1 ${statusColor}`} />
         <CardHeader className="space-y-4">
           <div className="flex items-start justify-between">
             <div className="space-y-1">
@@ -84,35 +102,31 @@ export function ConvenioCard({ data, municipio }: ConvenioCardProps) {
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <div className="flex items-center text-gray-400">
-                <Landmark className="h-4 w-4 mr-2" />
-                <span className="text-xs">Valor do Repasse</span>
-              </div>
-              <p className="text-white font-semibold">{valorRepasse}</p>
-            </div>
-            <div className="space-y-2">
-              <div className="flex items-center text-gray-400">
-                <PercentCircle className="h-4 w-4 mr-2" />
-                <span className="text-xs">Execução</span>
-              </div>
-              <p className="text-white font-semibold">{percentExecucao}</p>
-            </div>
+            <InfoItem
+              icon={Landmark}
+              label="Valor do Repasse"
+              value={dados.valor_repasse}
+            />
+            <InfoItem
+              icon={PercentCircle}
+              label="Execução"
+              value={dados.percentual_execucao_obra}
+            />
           </div>
           <div className="space-y-2">
             <div className="flex items-center text-gray-400">
               <FileText className="h-4 w-4 mr-2" />
               <span className="text-xs">Empresa Executora</span>
             </div>
-            <p className="text-white text-sm">{empresa.split(") ")[1]}</p>
+            <p className="text-white text-sm">{empresaNome}</p>
           </div>
         </CardContent>
         <CardFooter className="flex items-center justify-between">
           <div className="flex items-center text-gray-400 text-xs">
             <Calendar className="h-4 w-4 mr-2" />
-            Vigência até {vigencia}
+            Vigência até {dados.vigencia_convenio}
           </div>
-          <Badge variant="secondary">Lucena</Badge>
+          <Badge variant="secondary">{municipio}</Badge>
         </CardFooter>
       </Card>
     </Link>

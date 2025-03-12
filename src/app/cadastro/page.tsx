@@ -5,15 +5,34 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import axios from "axios";
+import { ErrorMessage } from "@/components/ui/feedback";
+import { apiService } from "@/services/api";
+
+interface RegisterFormData {
+  name: string;
+  email: string;
+  password: string;
+}
 
 export default function Cadastro() {
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [name, setName] = useState("");
+  const [formData, setFormData] = useState<RegisterFormData>({
+    name: "",
+    email: "",
+    password: "",
+  });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const router = useRouter();
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    setFormData((prev) => ({ ...prev, [name]: value }));
+
+    // Limpar erros quando o usuário começa a digitar
+    if (error) {
+      setError("");
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -21,19 +40,19 @@ export default function Cadastro() {
     setError("");
 
     try {
-      const response = await axios.post("http://localhost:5000/cadastrar", {
-        email,
-        password,
-        name,
+      const response = await apiService.register({
+        email: formData.email,
+        password: formData.password,
+        name: formData.name,
         municipios: [],
       });
 
-      if (response.data.success) {
+      if (response.success) {
         router.push("/");
       }
     } catch (err) {
       setError("Erro ao criar conta. Tente outro e-mail.");
-      console.log(err);
+      console.error("Erro no cadastro:", err);
     } finally {
       setLoading(false);
     }
@@ -48,39 +67,55 @@ export default function Cadastro() {
 
         <form onSubmit={handleSubmit} className="space-y-6">
           <div>
-            <label className="block text-gray-300 mb-2">Nome Completo</label>
+            <label htmlFor="name" className="block text-gray-300 mb-2">
+              Nome Completo
+            </label>
             <Input
+              id="name"
+              name="name"
               type="text"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
+              value={formData.name}
+              onChange={handleInputChange}
               className="bg-gray-700 text-white"
               required
+              disabled={loading}
             />
           </div>
 
           <div>
-            <label className="block text-gray-300 mb-2">E-mail</label>
+            <label htmlFor="email" className="block text-gray-300 mb-2">
+              E-mail
+            </label>
             <Input
+              id="email"
+              name="email"
               type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              value={formData.email}
+              onChange={handleInputChange}
               className="bg-gray-700 text-white"
               required
+              disabled={loading}
             />
           </div>
 
           <div>
-            <label className="block text-gray-300 mb-2">Senha</label>
+            <label htmlFor="password" className="block text-gray-300 mb-2">
+              Senha
+            </label>
             <Input
+              id="password"
+              name="password"
               type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
+              value={formData.password}
+              onChange={handleInputChange}
               className="bg-gray-700 text-white"
               required
+              disabled={loading}
+              minLength={6}
             />
           </div>
 
-          {error && <p className="text-red-500 text-sm">{error}</p>}
+          {error && <ErrorMessage message={error} />}
 
           <Button
             type="submit"

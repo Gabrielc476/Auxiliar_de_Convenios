@@ -1,6 +1,7 @@
 import "./globals.css"; // Seus estilos globais
 import Layout from "@/components/layout"; // Seu layout que você já criou
 import { AuthProvider } from "@/contexts/authContext";
+import { Toaster } from "@/components/ui/toaster";
 
 export const metadata = {
   title: "Dashboard",
@@ -14,9 +15,10 @@ export default function RootLayout({
 }) {
   return (
     <AuthProvider>
-      <html lang="en">
+      <html lang="pt-BR">
         <body>
           <Layout>{children}</Layout>
+          <Toaster />
         </body>
       </html>
     </AuthProvider>

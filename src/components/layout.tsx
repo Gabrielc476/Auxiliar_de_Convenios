@@ -18,8 +18,12 @@ import {
   Layout as LayoutIcon,
   Search,
   Settings,
-  Users,
+  FileText,
+  LogOut,
 } from "lucide-react";
+import Link from "next/link";
+import { useAuth } from "@/contexts/authContext";
+import { usePathname } from "next/navigation";
 
 // Contexto para busca
 interface SearchContextType {
@@ -34,44 +38,102 @@ const SearchContext = createContext<SearchContextType>({
 
 export const useSearch = () => useContext(SearchContext);
 
-const Sidebar = () => (
-  <div className="w-64 bg-gradient-to-b from-gray-900 to-gray-800 p-6 flex flex-col h-full">
-    <div className="flex items-center gap-3 mb-8">
-      <Avatar className="h-12 w-12">
-        <AvatarImage src="/placeholder.svg?height=40&width=40" alt="User" />
-        <AvatarFallback>FT</AvatarFallback>
-      </Avatar>
-      <div className="flex flex-col">
-        <span className="text-white text-sm font-medium">Fulano de tal</span>
-        <span className="text-gray-400 text-xs">fulano@detal@gmail.com</span>
-      </div>
-    </div>
-    <nav className="space-y-1 flex-1">
-      {[
-        { icon: Home, label: "Dashboard" },
-        { icon: Users, label: "Team" },
-        { icon: BarChart3, label: "Analytics" },
-        { icon: LayoutIcon, label: "Projects" },
-      ].map((item, i) => (
-        <Button
-          key={i}
-          variant="ghost"
-          className="w-full justify-start text-gray-300 hover:text-white hover:bg-gray-800"
-        >
-          <item.icon className="mr-2 h-4 w-4" />
-          {item.label}
-        </Button>
-      ))}
-    </nav>
+// Componente para itens da navegação
+interface NavItemProps {
+  icon: React.ElementType;
+  label: string;
+  href: string;
+  isActive?: boolean;
+}
+
+const NavItem = ({
+  icon: Icon,
+  label,
+  href,
+  isActive = false,
+}: NavItemProps) => (
+  <Link href={href} className="w-full">
     <Button
       variant="ghost"
-      className="w-full justify-start text-gray-300 hover:text-white hover:bg-gray-800"
+      className={`w-full justify-start ${
+        isActive
+          ? "bg-gray-700 text-white"
+          : "text-gray-300 hover:text-white hover:bg-gray-800"
+      }`}
     >
-      <Settings className="mr-2 h-4 w-4" />
-      Settings
+      <Icon className="mr-2 h-4 w-4" />
+      {label}
     </Button>
-  </div>
+  </Link>
 );
+
+// Componente da Sidebar
+const Sidebar = () => {
+  const { user, logout } = useAuth();
+  const pathname = usePathname();
+
+  // Primeiro nome para o fallback do avatar
+  const getInitials = () => {
+    if (!user?.nome) return "U";
+    const names = user.nome.split(" ");
+    if (names.length === 1) return names[0].charAt(0).toUpperCase();
+    return (
+      names[0].charAt(0) + names[names.length - 1].charAt(0)
+    ).toUpperCase();
+  };
+
+  // Determinar qual link está ativo
+  const isActive = (path: string) => pathname === path;
+
+  return (
+    <div className="w-64 bg-gradient-to-b from-gray-900 to-gray-800 p-6 flex flex-col h-full">
+      <div className="flex items-center gap-3 mb-8">
+        <Avatar className="h-12 w-12">
+          <AvatarImage src="/placeholder.svg?height=40&width=40" alt="User" />
+          <AvatarFallback>{getInitials()}</AvatarFallback>
+        </Avatar>
+        <div className="flex flex-col overflow-hidden">
+          <span className="text-white text-sm font-medium truncate">
+            {user?.nome || "Usuário"}
+          </span>
+          <span className="text-gray-400 text-xs truncate">
+            {user?.email || ""}
+          </span>
+        </div>
+      </div>
+
+      <nav className="space-y-1 flex-1">
+        <NavItem
+          icon={Home}
+          label="Dashboard"
+          href="/dashboardPage"
+          isActive={isActive("/dashboardPage")}
+        />
+        <NavItem
+          icon={FileText}
+          label="Dados Municipais"
+          href="/municipios-dados"
+          isActive={isActive("/municipios-dados")}
+        />
+        <NavItem
+          icon={BarChart3}
+          label="Análise"
+          href="/analise"
+          isActive={isActive("/analise")}
+        />
+      </nav>
+
+      <Button
+        variant="ghost"
+        className="w-full justify-start text-gray-300 hover:text-white hover:bg-gray-800 mt-4"
+        onClick={() => logout()}
+      >
+        <LogOut className="mr-2 h-4 w-4" />
+        Sair
+      </Button>
+    </div>
+  );
+};
 
 const Header = () => {
   const { searchQuery, setSearchQuery } = useSearch();

@@ -1,42 +1,42 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import axios from "axios";
-import { useAuth } from "@/contexts/authContext"; // Ajuste o caminho conforme necessário
+import { useAuth } from "@/contexts/authContext";
+import { ErrorMessage } from "@/components/ui/feedback";
 
 export default function LoginPage() {
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
+  const [formData, setFormData] = useState({
+    email: "",
+    password: "",
+  });
   const router = useRouter();
-  const { login } = useAuth(); // Use o hook no nível superior do componente
+  const { user, login, isLoading, error, clearError } = useAuth();
+
+  // Redirecionar se já estiver autenticado
+  useEffect(() => {
+    if (user) {
+      router.push("/dashboardPage");
+    }
+  }, [user, router]);
+
+  // Handler genérico para campos do formulário
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    setFormData((prev) => ({ ...prev, [name]: value }));
+
+    // Limpar erros quando o usuário começa a digitar
+    if (error) {
+      clearError();
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setLoading(true);
-    setError("");
-
-    try {
-      const response = await axios.post("http://localhost:5000/login", {
-        email,
-        password,
-      });
-
-      if (response.data.token) {
-        localStorage.setItem("token", response.data.token);
-        login(response.data); // Agora login() está acessível aqui
-        router.push("/dashboardPage");
-      }
-    } catch (err) {
-      setError("Credenciais inválidas ou erro de conexão");
-    } finally {
-      setLoading(false);
-    }
+    await login(formData.email, formData.password);
   };
 
   return (
@@ -48,35 +48,45 @@ export default function LoginPage() {
 
         <form onSubmit={handleSubmit} className="space-y-6">
           <div>
-            <label className="block text-gray-300 mb-2">E-mail</label>
+            <label htmlFor="email" className="block text-gray-300 mb-2">
+              E-mail
+            </label>
             <Input
+              id="email"
+              name="email"
               type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              value={formData.email}
+              onChange={handleInputChange}
               className="bg-gray-700 text-white"
               required
+              disabled={isLoading}
             />
           </div>
 
           <div>
-            <label className="block text-gray-300 mb-2">Senha</label>
+            <label htmlFor="password" className="block text-gray-300 mb-2">
+              Senha
+            </label>
             <Input
+              id="password"
+              name="password"
               type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
+              value={formData.password}
+              onChange={handleInputChange}
               className="bg-gray-700 text-white"
               required
+              disabled={isLoading}
             />
           </div>
 
-          {error && <p className="text-red-500 text-sm">{error}</p>}
+          {error && <ErrorMessage message={error} />}
 
           <Button
             type="submit"
             className="w-full bg-blue-600 hover:bg-blue-700"
-            disabled={loading}
+            disabled={isLoading}
           >
-            {loading ? "Carregando..." : "Entrar"}
+            {isLoading ? "Carregando..." : "Entrar"}
           </Button>
         </form>
 
@@ -84,7 +94,7 @@ export default function LoginPage() {
           <p className="text-gray-300">
             Não tem uma conta?{" "}
             <Link
-              href="/cadastrar"
+              href="/cadastro"
               className="text-blue-400 hover:text-blue-300"
             >
               Cadastre-se aqui
