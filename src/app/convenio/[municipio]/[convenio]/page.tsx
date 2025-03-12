@@ -8,6 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Landmark, Calendar, FileText, ClipboardList } from "lucide-react";
 import { apiService } from "@/services/api";
 import { Loading, ErrorMessage } from "@/components/ui/feedback";
+import PendenciasArea from "@/components/pendencias/pendencias-area"; // Importando a área de pendências
 
 // Componente reutilizável para itens de informação
 interface InfoItemProps {
@@ -98,7 +99,7 @@ export default function ConvenioDetailPage() {
 
   return (
     <div className="p-6 bg-gray-900 min-h-screen">
-      <div className="max-w-4xl mx-auto">
+      <div className="max-w-5xl mx-auto">
         {/* Cabeçalho */}
         <div className="mb-8">
           <Badge variant="outline" className="mb-4 bg-gray-800 text-gray-300">
@@ -127,6 +128,12 @@ export default function ConvenioDetailPage() {
             />
           </div>
         </div>
+
+        {/* Área de Pendências (Nova seção) */}
+        <PendenciasArea 
+          convenioId={data.convenio} 
+          municipioId={municipio} 
+        />
 
         {/* Grid de Informações */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">

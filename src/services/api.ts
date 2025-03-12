@@ -9,11 +9,15 @@ import {
   Convenio,
   MunicipioDados,
 } from "../interfaces/municipioInterfaces";
+import {
+  PendenciaType,
+  NovaPendenciaType
+} from "../interfaces/pendenciaInterfaces";
 
 // Usando constantes para evitar strings mágicas
 const API_CONFIG = {
   BASE_URL: process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000",
-  TIMEOUT: 120000, // Aumentado para 60 segundos
+  TIMEOUT: 120000, // Aumentado para 120 segundos
   HEADERS: {
     "Content-Type": "application/json",
   },
@@ -75,6 +79,8 @@ class ApiService {
   }
 
   // Métodos específicos para diferentes endpoints
+
+  // ----- Municípios e Convênios -----
   public async getMunicipios(): Promise<Municipio[]> {
     return this.request<Municipio[]>({ method: "GET", url: "/" });
   }
@@ -123,6 +129,82 @@ class ApiService {
     });
   }
 
+  // ----- Pendências -----
+
+  // Obter todas as pendências de um convênio
+  public async getPendencias(convenioId: string, municipioId?: string): Promise<PendenciaType[]> {
+    try {
+      console.log(`Buscando pendências: convenioId=${convenioId}, municipioId=${municipioId}`);
+      let url = `/pendencias/convenio/${encodeURIComponent(convenioId)}`;
+      
+      if (municipioId) {
+        url += `?municipio_id=${encodeURIComponent(municipioId)}`;
+      }
+      
+      // Lidar explicitamente com 404 e outros erros
+      try {
+        const response = await this.api.get(url);
+        
+        // Verificar se a resposta é um array
+        if (Array.isArray(response.data)) {
+          return response.data;
+        } else {
+          console.warn("Resposta da API não é um array:", response.data);
+          return []; // Retornar array vazio
+        }
+      } catch (error) {
+        // Se for 404, retorna array vazio em vez de lançar erro
+        const axiosError = error as AxiosError;
+        if (axiosError.response?.status === 404) {
+          console.log("Endpoint não encontrado (404). Retornando array vazio.");
+          return [];
+        }
+        throw error; // Re-lança outros erros
+      }
+    } catch (error) {
+      console.error("Erro ao buscar pendências:", error);
+      return []; // Retornar array vazio em caso de erro
+    }
+  }
+
+  // Obter uma pendência específica pelo ID
+  public async getPendenciaById(pendenciaId: string): Promise<PendenciaType> {
+    return this.request<PendenciaType>({
+      method: "GET",
+      url: `/pendencias/${pendenciaId}`,
+    });
+  }
+
+  // Criar uma nova pendência
+  public async createPendencia(data: NovaPendenciaType): Promise<PendenciaType> {
+    return this.request<PendenciaType>({
+      method: "POST",
+      url: "/pendencias",
+      data,
+    });
+  }
+
+  // Atualizar uma pendência existente
+  public async updatePendencia(
+    pendenciaId: string, 
+    data: Partial<PendenciaType>
+  ): Promise<PendenciaType> {
+    return this.request<PendenciaType>({
+      method: "PUT",
+      url: `/pendencias/${pendenciaId}`,
+      data,
+    });
+  }
+
+  // Excluir uma pendência
+  public async deletePendencia(pendenciaId: string): Promise<any> {
+    return this.request<any>({
+      method: "DELETE",
+      url: `/pendencias/${pendenciaId}`,
+    });
+  }
+
+  // ----- Autenticação -----
   public async login(email: string, password: string): Promise<any> {
     return this.request<any>({
       method: "POST",
