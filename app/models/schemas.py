@@ -1,5 +1,7 @@
 from pydantic import BaseModel
 from typing import List, Optional
+from enum import Enum
+from datetime import datetime
 
 class Dado(BaseModel):
     valor_repasse: str
@@ -52,3 +54,73 @@ class UserResponse(BaseModel):
     nome: str
     municipios: List[str]
     token: Optional[str] = None
+
+# Enums para pendências
+class PendenciaTipo(str, Enum):
+    PRESTACAO_CONTAS = "Prestação de Contas"
+    LICITACAO = "Licitação"
+    EXECUCAO = "Execução"
+    DOCUMENTACAO = "Documentação"
+    OUTRO = "Outro"
+
+
+class PendenciaSubtipo(str, Enum):
+    AGUARDANDO_DOCUMENTOS = "Aguardando Documentos"
+    EM_ANALISE = "Em Análise"
+    URGENTE = "Urgente"
+    CONCLUIDO = "Concluído"
+    PENDENTE = "Pendente"
+    OUTRO = "Outro"
+
+
+class PendenciaStatus(str, Enum):
+    ABERTA = "aberta"
+    CONCLUIDA = "concluida"
+
+
+class PendenciaPrioridade(str, Enum):
+    BAIXA = "baixa"
+    MEDIA = "media"
+    ALTA = "alta"
+
+
+# Esquema para criação de pendência
+class PendenciaCreate(BaseModel):
+    convenioId: str
+    municipioId: str
+    tipo: str  # Usando string para permitir valores fora do enum
+    subtipo: str  # Usando string para permitir valores fora do enum
+    descricao: str
+    detalhes: str
+    responsavel: Optional[str] = None
+    dataLimite: Optional[str] = None
+    prioridade: str  # baixa, media, alta
+
+
+# Esquema para atualização de pendência
+class PendenciaUpdate(BaseModel):
+    tipo: Optional[str] = None
+    subtipo: Optional[str] = None
+    descricao: Optional[str] = None
+    detalhes: Optional[str] = None
+    responsavel: Optional[str] = None
+    dataLimite: Optional[str] = None
+    status: Optional[str] = None
+    prioridade: Optional[str] = None
+
+
+# Esquema para pendência completa (resposta)
+class Pendencia(BaseModel):
+    id: str
+    convenioId: str
+    municipioId: str
+    tipo: str
+    subtipo: str
+    descricao: str
+    detalhes: str
+    responsavel: Optional[str] = None
+    dataCriacao: str
+    dataAtualizacao: str
+    dataLimite: Optional[str] = None
+    status: str  # aberta, concluida
+    prioridade: str  # baixa, media, alta

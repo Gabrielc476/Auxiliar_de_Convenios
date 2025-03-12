@@ -27,8 +27,10 @@ def create_app():
     # Registrar blueprints
     from app.routes.auth_routes import auth_bp
     from app.routes.convenio_routes import convenio_bp
+    from app.routes.pendencia_routes import pendencia_bp
 
     app.register_blueprint(auth_bp)
     app.register_blueprint(convenio_bp)
+    app.register_blueprint(pendencia_bp)
 
     return app
