@@ -31,22 +31,24 @@ export default function ConveniosCardsArea() {
   const [selectedMunicipios, setSelectedMunicipios] = useState<string[]>([]);
 
   // Carregar dados
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const data = await apiService.getMunicipios();
-        setMunicipios(data);
-        setError(null);
-      } catch (err) {
-        setError("Erro ao carregar dados dos municípios");
-        console.error("Erro ao buscar municípios:", err);
-      } finally {
-        setLoading(false);
-      }
-    };
+  // src/components/cardArea/convenioCardArea.tsx (trecho principal)
+useEffect(() => {
+  const fetchData = async () => {
+    try {
+      const data = await apiService.getMunicipios();
+      console.log("Municípios carregados:", data.map(m => m.municipio));
+      setMunicipios(data);
+      setError(null);
+    } catch (err) {
+      setError("Erro ao carregar dados dos municípios");
+      console.error("Erro ao buscar municípios:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
 
-    fetchData();
-  }, []);
+  fetchData();
+}, []);
 
   // Voltar para primeira página quando os filtros mudam
   useEffect(() => {

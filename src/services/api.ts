@@ -13,7 +13,7 @@ import {
 // Usando constantes para evitar strings mágicas
 const API_CONFIG = {
   BASE_URL: process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000",
-  TIMEOUT: 10000,
+  TIMEOUT: 120000, // Aumentado para 60 segundos
   HEADERS: {
     "Content-Type": "application/json",
   },
@@ -64,7 +64,7 @@ class ApiService {
     if (error.response) {
       // Resposta com erro do servidor
       const errorData = error.response.data as any;
-      return new Error(errorData.message || `Erro ${error.response.status}`);
+      return new Error(errorData.message || errorData.error || `Erro ${error.response.status}`);
     } else if (error.request) {
       // Sem resposta do servidor
       return new Error("Sem resposta do servidor. Verifique sua conexão.");
@@ -103,6 +103,22 @@ class ApiService {
     return this.request<any>({
       method: "PUT",
       url: `/municipios/dados/${id}`,
+      data,
+    });
+  }
+
+  public async createMunicipio(data: MunicipioDados): Promise<any> {
+    return this.request<any>({
+      method: "POST",
+      url: "/municipios/dados",
+      data,
+    });
+  }
+
+  public async addConvenio(municipio: string, data: any): Promise<any> {
+    return this.request<any>({
+      method: "POST",
+      url: `/convenios/${encodeURIComponent(municipio)}`,
       data,
     });
   }

@@ -114,67 +114,66 @@ export default function UploadRelatorioModal({
 
   const handleUpload = async () => {
     if (!file) return;
-
+  
     setUploading(true);
     setError(null);
-
+  
     try {
-      // Setup progress simulation
+      // Mostrar feedback mais claro sobre processo extenso
+      toast({
+        title: "Processamento iniciado",
+        description: "O processamento pode levar até 1 minuto. Por favor, aguarde.",
+        duration: 10000,
+      });
+  
+      // Simulação de progresso mais lenta
       const simulateProgress = () => {
         let currentProgress = 0;
         const interval = setInterval(() => {
-          currentProgress += Math.random() * 5;
-          if (currentProgress > 95) {
+          // Progresso mais lento para refletir o tempo real de processamento
+          currentProgress += Math.random() * 2;
+          if (currentProgress > 90) {
             clearInterval(interval);
-            currentProgress = 95; // Keep at 95% until actual completion
+            currentProgress = 90; // Manter em 90% até resposta real
           }
           setProgress(currentProgress);
-        }, 200);
+        }, 500);
         return interval;
       };
-
+  
       const progressInterval = simulateProgress();
-
-      // Actual upload
+  
       try {
+        // Aumentar tempo de timeout implicitamente através do service
         const response = await apiService.uploadRelatorio(file);
-
-        // Upload successful
+  
+        // Upload e processamento completos
         clearInterval(progressInterval);
         setProgress(100);
         setUploadComplete(true);
-
-        // Simulate backend processing
-        setProcessingStatus("processing");
-
-        // Wait for 3 seconds to simulate processing
-        setTimeout(() => {
-          // Set as successful
-          setProcessingStatus("success");
-
-          // Notify
-          toast({
-            title: "Processamento concluído",
-            description: "O relatório foi processado com sucesso!",
-            variant: "default",
-          });
-
-          // Call success callback if provided
-          if (onSuccess) {
-            onSuccess();
-          }
-        }, 3000);
+        setProcessingStatus("success");
+  
+        // Notificar
+        toast({
+          title: "Processamento concluído",
+          description: "O relatório foi processado com sucesso!",
+          variant: "default",
+        });
+  
+        // Callback de sucesso
+        if (onSuccess) {
+          onSuccess();
+        }
       } catch (err: any) {
-        // Handle errors
         clearInterval(progressInterval);
         console.error("Erro no upload:", err);
         setError(err.message || "Ocorreu um erro durante o upload.");
         setProcessingStatus("error");
         setProgress(0);
-
+  
         toast({
           title: "Erro no upload",
-          description: err.message || "Não foi possível enviar o arquivo.",
+          description: err.message || "Não foi possível enviar o arquivo. Verifique sua conexão.",
           variant: "destructive",
         });
       }
@@ -182,7 +181,6 @@ export default function UploadRelatorioModal({
       setUploading(false);
     }
   };
-
   const getStatusIcon = () => {
     switch (processingStatus) {
       case "processing":

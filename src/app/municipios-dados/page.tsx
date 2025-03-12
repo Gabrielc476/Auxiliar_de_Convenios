@@ -20,14 +20,18 @@ import {
   Mail,
   User,
   MapPin,
-  IdentificationCard,
+  CreditCard,
   ClipboardCheck,
   FileCheck,
+  Plus,
+  PlusCircle,
 } from "lucide-react";
 import { toast } from "@/components/ui/use-toast";
 import { Badge } from "@/components/ui/badge";
 import EditMunicipalityModal from "@/components/edit-municipality-modal";
 import CertidoesModal from "@/components/certidoes-modal";
+import AddMunicipioModal from "@/components/add-municipio-modal";
+import AddConvenioModal from "@/components/add-convenio-modal";
 import { MunicipioDados } from "@/interfaces/municipioInterfaces";
 import { useAuth } from "@/contexts/authContext";
 import { Toaster } from "@/components/ui/toaster";
@@ -85,6 +89,8 @@ export default function MunicipiosDadosPage() {
     useState<MunicipioDados | null>(null);
   const [editModalOpen, setEditModalOpen] = useState(false);
   const [certidoesModalOpen, setCertidoesModalOpen] = useState(false);
+  const [addModalOpen, setAddModalOpen] = useState(false);
+  const [addConvenioModalOpen, setAddConvenioModalOpen] = useState(false);
   const [municipios, setMunicipios] = useState<MunicipioDados[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -93,33 +99,33 @@ export default function MunicipiosDadosPage() {
   const router = useRouter();
 
   // Buscar dados dos municípios
+  const fetchMunicipios = async () => {
+    try {
+      // Usando o serviço de API centralizado
+      const data = await apiService.getMunicipiosDados();
+
+      // Adicionar ids temporários se não existirem
+      const municipiosWithIds = data.map((m, index) => ({
+        ...m,
+        id: m.id || `temp-id-${index}`,
+      }));
+
+      setMunicipios(municipiosWithIds);
+    } catch (error: any) {
+      console.error("Erro ao buscar dados dos municípios:", error);
+      setError(error.message || "Erro ao carregar dados");
+
+      toast({
+        title: "Erro",
+        description: "Não foi possível carregar os municípios",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
-    const fetchMunicipios = async () => {
-      try {
-        // Usando o serviço de API centralizado
-        const data = await apiService.getMunicipiosDados();
-
-        // Adicionar ids temporários se não existirem
-        const municipiosWithIds = data.map((m, index) => ({
-          ...m,
-          id: m.id || `temp-id-${index}`,
-        }));
-
-        setMunicipios(municipiosWithIds);
-      } catch (error: any) {
-        console.error("Erro ao buscar dados dos municípios:", error);
-        setError(error.message || "Erro ao carregar dados");
-
-        toast({
-          title: "Erro",
-          description: "Não foi possível carregar os municípios",
-          variant: "destructive",
-        });
-      } finally {
-        setLoading(false);
-      }
-    };
-
     fetchMunicipios();
   }, []);
 
@@ -155,6 +161,11 @@ export default function MunicipiosDadosPage() {
     setEditModalOpen(true);
   };
 
+  const handleAddConvenio = (municipio: MunicipioDados) => {
+    setSelectedMunicipio(municipio);
+    setAddConvenioModalOpen(true);
+  };
+
   const handleSaveMunicipio = async (updatedMunicipio: MunicipioDados) => {
     try {
       if (updatedMunicipio.id) {
@@ -184,6 +195,23 @@ export default function MunicipiosDadosPage() {
     } finally {
       setEditModalOpen(false);
     }
+  };
+
+  const handleAddMunicipio = (newMunicipio: MunicipioDados) => {
+    // Aqui você implementaria a lógica para adicionar o município à lista
+    setMunicipios(prev => [...prev, newMunicipio]);
+  };
+
+  const handleConvenioAdded = () => {
+    // Recarregar dados após adicionar um convênio
+    toast({
+      title: "Convênio adicionado",
+      description: "O convênio foi adicionado com sucesso",
+      duration: 3000,
+    });
+    
+    // Recarregar municípios (na implementação real)
+    fetchMunicipios();
   };
 
   // Filtrar municípios com base nos municípios atribuídos ao usuário e termo de busca
@@ -243,7 +271,7 @@ export default function MunicipiosDadosPage() {
             </p>
           </div>
 
-          <div className="w-full md:w-auto">
+          <div className="w-full md:w-auto flex flex-col md:flex-row gap-4">
             <div className="relative">
               <Input
                 type="search"
@@ -266,6 +294,14 @@ export default function MunicipiosDadosPage() {
                 <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
               </svg>
             </div>
+            
+            <Button 
+              className="bg-blue-600 hover:bg-blue-700"
+              onClick={() => setAddModalOpen(true)}
+            >
+              <Plus className="h-4 w-4 mr-2" />
+              Adicionar Município
+            </Button>
           </div>
         </div>
 
@@ -355,7 +391,7 @@ export default function MunicipiosDadosPage() {
                                   value={municipio.cnpj}
                                   isCopied={!!copiedItems[municipio.cnpj]}
                                   onCopy={copyToClipboard}
-                                  icon={IdentificationCard}
+                                  icon={CreditCard}
                                 />
                                 <CopyableField
                                   label="Endereço"
@@ -402,7 +438,7 @@ export default function MunicipiosDadosPage() {
                                     !!copiedItems[municipio.cpf_prefeito]
                                   }
                                   onCopy={copyToClipboard}
-                                  icon={IdentificationCard}
+                                  icon={CreditCard}
                                 />
                                 <CopyableField
                                   label="RG"
@@ -411,7 +447,7 @@ export default function MunicipiosDadosPage() {
                                     !!copiedItems[municipio.rg_prefeito]
                                   }
                                   onCopy={copyToClipboard}
-                                  icon={IdentificationCard}
+                                  icon={CreditCard}
                                 />
                               </div>
                             </div>
@@ -445,6 +481,14 @@ export default function MunicipiosDadosPage() {
                               >
                                 <FileText className="h-4 w-4 mr-2" />
                                 Documentos Anexados
+                              </Button>
+                              <Button
+                                variant="default"
+                                className="bg-green-600 hover:bg-green-700"
+                                onClick={() => handleAddConvenio(municipio)}
+                              >
+                                <PlusCircle className="h-4 w-4 mr-2" />
+                                Adicionar Convênio
                               </Button>
                             </div>
                           </div>
@@ -491,6 +535,23 @@ export default function MunicipiosDadosPage() {
           municipio={selectedMunicipio}
           open={certidoesModalOpen}
           onOpenChange={setCertidoesModalOpen}
+        />
+      )}
+
+      {/* Modal de Adicionar Município */}
+      <AddMunicipioModal
+        open={addModalOpen}
+        onOpenChange={setAddModalOpen}
+        onSuccess={handleAddMunicipio}
+      />
+
+      {/* Modal de Adicionar Convênio */}
+      {selectedMunicipio && (
+        <AddConvenioModal
+          municipio={selectedMunicipio.municipio}
+          open={addConvenioModalOpen}
+          onOpenChange={setAddConvenioModalOpen}
+          onSuccess={handleConvenioAdded}
         />
       )}
 

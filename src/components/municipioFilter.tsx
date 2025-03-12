@@ -1,7 +1,10 @@
+// src/components/municipioFilter.tsx
 "use client";
 
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/authContext";
+import { apiService } from "@/services/api";
 
 interface MunicipioFilterProps {
   selected: string[];
@@ -13,9 +16,32 @@ export const MunicipioFilter = ({
   setSelected,
 }: MunicipioFilterProps) => {
   const { user } = useAuth();
+  const [availableMunicipios, setAvailableMunicipios] = useState<string[]>([]);
 
-  // Se não há usuário ou municípios, não renderiza nada
-  if (!user?.municipios?.length) return null;
+  // Buscar todos os municípios disponíveis
+  useEffect(() => {
+    const fetchMunicipios = async () => {
+      try {
+        const data = await apiService.getMunicipios();
+        // Extrair nomes únicos de municípios
+        const municipioNames = [...new Set(data.map(m => m.municipio))];
+        setAvailableMunicipios(municipioNames);
+      } catch (error) {
+        console.error("Erro ao buscar municípios:", error);
+      }
+    };
+
+    fetchMunicipios();
+  }, []);
+
+  // Combinar municípios do usuário com todos disponíveis (sem duplicatas)
+  const allMunicipios = [...new Set([
+    ...(user?.municipios || []),
+    ...availableMunicipios
+  ])];
+
+  // Se não há municípios, não renderiza nada
+  if (allMunicipios.length === 0) return null;
 
   const toggleMunicipio = (municipio: string) => {
     const newSelected = selected.includes(municipio)
@@ -26,7 +52,7 @@ export const MunicipioFilter = ({
 
   return (
     <div className="flex flex-wrap gap-2 mb-6">
-      {user.municipios.map((municipio) => {
+      {allMunicipios.map((municipio) => {
         const isSelected = selected.includes(municipio);
 
         return (
