@@ -28,9 +28,11 @@ def create_app():
     from app.routes.auth_routes import auth_bp
     from app.routes.convenio_routes import convenio_bp
     from app.routes.pendencia_routes import pendencia_bp
+    from app.routes.reminder_routes import reminder_bp
 
     app.register_blueprint(auth_bp)
     app.register_blueprint(convenio_bp)
     app.register_blueprint(pendencia_bp)
+    app.register_blueprint(reminder_bp)
 
     return app
