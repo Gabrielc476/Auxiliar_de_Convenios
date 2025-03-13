@@ -29,6 +29,7 @@ class Municipio(BaseModel):
     convenios: list[Convenio]
 
 class MunicipioDados(BaseModel):
+    id: Optional[str] = None
     municipio: str
     cnpj: str
     prefeito: str

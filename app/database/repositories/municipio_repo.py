@@ -49,7 +49,20 @@ def get_municipios_dados() -> List[MunicipioDados]:
     municipios_dados = get_collection("municipiosDados")
     try:
         documentos = list(municipios_dados.find({}))
-        return [MunicipioDados(**convert_object_ids(doc)) for doc in documentos]
+        result = []
+
+        for doc in documentos:
+            # Convert the MongoDB document
+            converted_doc = convert_object_ids(doc)
+
+            # Explicitly add id field with the _id value
+            if '_id' in converted_doc:
+                converted_doc['id'] = converted_doc['_id']
+
+            # Create Pydantic model with all fields including id
+            result.append(MunicipioDados(**converted_doc))
+
+        return result
     except Exception as e:
         raise Exception(f"Erro ao acessar banco de dados: {str(e)}")
 

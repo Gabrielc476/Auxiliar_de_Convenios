@@ -88,6 +88,7 @@ def get_all_municipio_data(current_user):
     """Obter dados de todos os municípios."""
     try:
         resultado = get_municipio_dados()
+        print(resultado)
         return jsonify(resultado)
     except Exception as e:
         return jsonify({"error": f"Erro interno: {str(e)}"}), 500

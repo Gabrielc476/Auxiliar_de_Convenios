@@ -34,6 +34,7 @@ def get_all_municipio_names():
 def get_municipio_dados():
     """Obter dados cadastrais de todos os municípios."""
     dados = get_municipios_dados()
+    print(dados)
     return [item.model_dump() for item in dados]
 
 
