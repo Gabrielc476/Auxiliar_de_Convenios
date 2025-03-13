@@ -13,6 +13,7 @@ import {
   PendenciaType,
   NovaPendenciaType
 } from "../interfaces/pendenciaInterfaces";
+import { ReminderType, NewReminderType } from "@/interfaces/reminderInterfaces";
 
 // Usando constantes para evitar strings mágicas
 const API_CONFIG = {
@@ -238,6 +239,41 @@ class ApiService {
       headers: {
         "Content-Type": "multipart/form-data",
       },
+    });
+  }
+  // ----- Lembretes -----
+  
+  // Get all reminders
+  public async getReminders(): Promise<ReminderType[]> {
+    return this.request<ReminderType[]>({
+      method: "GET",
+      url: "/reminders"
+    });
+  }
+
+  // Create a new reminder
+  public async createReminder(reminder: NewReminderType): Promise<ReminderType> {
+    return this.request<ReminderType>({
+      method: "POST",
+      url: "/reminders",
+      data: reminder
+    });
+  }
+
+  // Update a reminder
+  public async updateReminder(id: string, reminder: Partial<ReminderType>): Promise<ReminderType> {
+    return this.request<ReminderType>({
+      method: "PUT",
+      url: `/reminders/${id}`,
+      data: reminder
+    });
+  }
+
+  // Delete a reminder
+  public async deleteReminder(id: string): Promise<any> {
+    return this.request<any>({
+      method: "DELETE",
+      url: `/reminders/${id}`
     });
   }
 }

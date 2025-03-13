@@ -8,6 +8,7 @@ import UploadRelatorioModal from "@/components/upload-relatorios-modal";
 import { toast } from "@/components/ui/use-toast";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/contexts/authContext";
+import ReminderSummary from "@/components/reminders/reminder-summary";
 
 export default function DashboardPage() {
   const [uploadModalOpen, setUploadModalOpen] = useState(false);
@@ -56,7 +57,7 @@ export default function DashboardPage() {
             <Button
               variant="outline"
               size="sm"
-              className="border-gray-600 text-gray-300 hover:text-white hover:bg-gray-700"
+              className="border-gray-600 text-gray-300 hover:bg-gray-700 hover:text-white"
               onClick={() => setRefreshTrigger((prev) => prev + 1)}
             >
               <RefreshCw className="h-4 w-4 mr-2" />
@@ -75,8 +76,18 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {/* Área principal com os cards de convênios */}
-      <ConveniosCardsArea key={refreshTrigger} />
+      {/* Área com widgets e cards de convênios */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
+        {/* Widget de lembretes à direita */}
+        <div className="md:col-span-1 order-2 md:order-2">
+          <ReminderSummary />
+        </div>
+        
+        {/* Cards de convênios à esquerda */}
+        <div className="md:col-span-3 order-1 md:order-1">
+          <ConveniosCardsArea key={refreshTrigger} />
+        </div>
+      </div>
 
       {/* Modal de upload de relatório */}
       <UploadRelatorioModal

@@ -20,6 +20,7 @@ import {
   Settings,
   FileText,
   LogOut,
+  BellRing
 } from "lucide-react";
 import Link from "next/link";
 import { useAuth } from "@/contexts/authContext";
@@ -120,6 +121,12 @@ const Sidebar = () => {
           label="Análise"
           href="/analise"
           isActive={isActive("/analise")}
+        />
+        <NavItem
+          icon={BellRing}
+          label="Lembretes"
+          href="/reminders"
+          isActive={isActive("/lembretes")}
         />
       </nav>
 

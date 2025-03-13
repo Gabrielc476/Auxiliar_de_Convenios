@@ -6,10 +6,12 @@ import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Input } from "@/components/ui/input"
 import { toast } from "@/components/ui/use-toast"
-import { CheckCircle, Plus, Search, Clock, Loader2, ClipboardList } from "lucide-react"
+import { CheckCircle, Plus, Search, Clock, Loader2, ClipboardList, BellRing } from "lucide-react"
 import type { PendenciaType, NovaPendenciaType } from "@/interfaces/pendenciaInterfaces"
+import type { NewReminderType } from "@/interfaces/reminderInterfaces"
 import PendenciaCard from "./pendencia-card"
 import AddPendenciaModal from "./add-pendencia-modal"
+import AddReminderModal from "@/components/reminders/add-reminder-modal"
 import { EmptyState } from "@/components/ui/feedback"
 import { apiService } from "@/services/api"
 import { Badge } from "@/components/ui/badge"
@@ -26,6 +28,7 @@ export default function PendenciasArea({ convenioId, municipioId }: PendenciasAr
   const [selectedTab, setSelectedTab] = useState("todas")
   const [searchTerm, setSearchTerm] = useState("")
   const [addModalOpen, setAddModalOpen] = useState(false)
+  const [reminderModalOpen, setReminderModalOpen] = useState(false)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
@@ -143,6 +146,25 @@ export default function PendenciasArea({ convenioId, municipioId }: PendenciasAr
         variant: "destructive",
         duration: 3000,
       })
+    }
+  }
+  
+  // Manipulador para adicionar lembretes
+  const handleAddReminder = async (reminder: NewReminderType) => {
+    try {
+      await apiService.createReminder(reminder);
+      toast({
+        title: "Lembrete criado",
+        description: "O lembrete foi criado com sucesso! Você pode visualizá-lo na página de Lembretes.",
+        duration: 3000,
+      });
+    } catch (error: any) {
+      console.error("Erro ao criar lembrete:", error);
+      toast({
+        title: "Erro",
+        description: error.message || "Ocorreu um erro ao criar o lembrete",
+        variant: "destructive",
+      });
     }
   }
 
@@ -278,13 +300,23 @@ const handleUpdatePendencia = async (pendenciaAtualizada: PendenciaType) => {
             </CardDescription>
           </div>
 
-          <Button
-            onClick={() => setAddModalOpen(true)}
-            className="bg-emerald-600 hover:bg-emerald-700 transition-colors shadow-lg shadow-emerald-900/20"
-          >
-            <Plus className="h-4 w-4 mr-2" />
-            Nova Pendência
-          </Button>
+          <div className="flex flex-col sm:flex-row gap-2">
+            <Button
+              onClick={() => setReminderModalOpen(true)}
+              className="bg-blue-600 hover:bg-blue-700 transition-colors shadow-lg shadow-blue-900/20"
+            >
+              <BellRing className="h-4 w-4 mr-2" />
+              Criar Lembrete
+            </Button>
+            
+            <Button
+              onClick={() => setAddModalOpen(true)}
+              className="bg-emerald-600 hover:bg-emerald-700 transition-colors shadow-lg shadow-emerald-900/20"
+            >
+              <Plus className="h-4 w-4 mr-2" />
+              Nova Pendência
+            </Button>
+          </div>
         </div>
       </CardHeader>
 
@@ -395,6 +427,15 @@ const handleUpdatePendencia = async (pendenciaAtualizada: PendenciaType) => {
         convenioId={convenioId}
         municipioId={municipioId}
       />
+
+      {/* Modal para adicionar lembretes */}
+      <AddReminderModal
+        open={reminderModalOpen}
+        onOpenChange={setReminderModalOpen}
+        onSave={handleAddReminder}
+        relatedConvenioId={convenioId}
+        relatedPendenciaId={municipioId}
+      />
     </Card>
   )
 
@@ -446,4 +487,3 @@ const handleUpdatePendencia = async (pendenciaAtualizada: PendenciaType) => {
     )
   }
 }
-

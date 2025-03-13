@@ -1,7 +1,6 @@
 "use client"
 
-import type React from "react"
-import { useState, useEffect } from "react"
+import React, { useState, useEffect, useRef } from "react"
 import {
   Dialog,
   DialogContent,
@@ -344,6 +343,7 @@ export default function AddPendenciaModal({
   const [animatePreview, setAnimatePreview] = useState(false)
   const [activeTab, setActiveTab] = useState("predefinidos")
   const totalSteps = 2
+  const formRef = useRef<HTMLFormElement>(null)
 
   // Effects
   useEffect(() => {
@@ -415,7 +415,10 @@ export default function AddPendenciaModal({
   }
 
   // Navigation
-  const handleNextStep = () => {
+  const handleNextStep = (e: React.MouseEvent) => {
+    // Prevent any form submission
+    e.preventDefault()
+    
     if (validateStep(step)) {
       setStep(step + 1)
     } else {
@@ -543,7 +546,18 @@ export default function AddPendenciaModal({
           </div>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="p-6 space-y-4 max-h-[70vh] overflow-y-auto">
+        <form 
+          ref={formRef}
+          onSubmit={(e) => {
+            // Always prevent default form submission
+            e.preventDefault();
+            // Only proceed with submission on explicit submit button click
+            if (step === totalSteps) {
+              handleSubmit(e);
+            }
+          }} 
+          className="p-6 space-y-4 max-h-[70vh] overflow-y-auto"
+        >
           {/* Step 1: Basic Information */}
           {step === 1 && (
             <div className="space-y-6">
@@ -778,6 +792,7 @@ export default function AddPendenciaModal({
                   <Popover>
                     <PopoverTrigger asChild>
                       <Button
+                        type="button"
                         variant="outline"
                         className={cn(
                           "w-full justify-start text-left font-normal bg-gray-800 border-gray-700 hover:bg-gray-700 hover:text-white",
@@ -920,7 +935,8 @@ export default function AddPendenciaModal({
               </Button>
             ) : (
               <Button
-                type="submit"
+                type="button"
+                onClick={(e) => handleSubmit(e)}
                 className="w-full sm:w-auto bg-emerald-600 hover:bg-emerald-700 transition-colors"
                 disabled={loading}
               >
