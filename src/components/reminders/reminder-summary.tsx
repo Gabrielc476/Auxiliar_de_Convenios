@@ -77,7 +77,7 @@ export default function ReminderSummary() {
 
   // Handle navigation to reminders page
   const handleViewAllReminders = () => {
-    router.push("/lembretes");
+    router.push("/reminders");
   };
 
   return (
