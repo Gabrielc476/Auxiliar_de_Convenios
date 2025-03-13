@@ -1,7 +1,6 @@
 "use client"
 
 import type React from "react"
-
 import { useState, useEffect } from "react"
 import {
   Dialog,
@@ -45,6 +44,7 @@ import { format } from "date-fns"
 import { ptBR } from "date-fns/locale"
 import { Calendar as CalendarComponent } from "@/components/ui/calendar"
 
+// Types
 interface AddPendenciaModalProps {
   open: boolean
   onOpenChange: (open: boolean) => void
@@ -53,6 +53,268 @@ interface AddPendenciaModalProps {
   municipioId: string
 }
 
+interface InputFieldProps {
+  id: string
+  label: string
+  value: string
+  onChange: (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => void
+  type?: string
+  required?: boolean
+  icon?: React.ReactNode
+  placeholder?: string
+}
+
+// Style utilities
+const styleUtils = {
+  getTipoBadgeColor: (tipo: string) => {
+    const colorMap: Record<string, string> = {
+      "prestação de contas": "bg-amber-500 hover:bg-amber-600",
+      "licitação": "bg-blue-500 hover:bg-blue-600",
+      "execução": "bg-green-500 hover:bg-green-600",
+      "documentação": "bg-purple-500 hover:bg-purple-600"
+    }
+    return colorMap[tipo.toLowerCase()] || "bg-gray-500 hover:bg-gray-600"
+  },
+  
+  getStatusColor: (status: string) => {
+    const colorMap: Record<string, string> = {
+      "aguardando documentos": "bg-yellow-500/20 text-yellow-400 border-yellow-500/50",
+      "em análise": "bg-blue-500/20 text-blue-400 border-blue-500/50",
+      "urgente": "bg-red-500/20 text-red-400 border-red-500/50",
+      "concluído": "bg-green-500/20 text-green-400 border-green-500/50",
+      "pendente": "bg-orange-500/20 text-orange-400 border-orange-500/50"
+    }
+    return colorMap[status.toLowerCase()] || "bg-gray-700 text-gray-300 border-gray-600"
+  },
+  
+  getPrioridadeColor: (prioridade: string) => {
+    const colorMap: Record<string, string> = {
+      "alta": "bg-red-500/20 text-red-400 border-red-500/50",
+      "media": "bg-amber-500/20 text-amber-400 border-amber-500/50",
+      "baixa": "bg-blue-500/20 text-blue-400 border-blue-500/50"
+    }
+    return colorMap[prioridade.toLowerCase()] || "bg-gray-700 text-gray-300 border-gray-600"
+  }
+}
+
+// Predefined data
+const TIPOS_PREDEFINIDOS = [
+  {
+    value: "Prestação de Contas",
+    label: "Prestação de Contas",
+    icon: <FileText className="h-4 w-4" />,
+    description: "Pendências relacionadas à documentação financeira e prestação de contas do convênio.",
+  },
+  {
+    value: "Licitação",
+    label: "Licitação",
+    icon: <ClipboardList className="h-4 w-4" />,
+    description: "Pendências relacionadas aos processos licitatórios do convênio.",
+  },
+  {
+    value: "Execução",
+    label: "Execução",
+    icon: <CheckCircle2 className="h-4 w-4" />,
+    description: "Pendências relacionadas à execução física do objeto do convênio.",
+  },
+  {
+    value: "Documentação",
+    label: "Documentação",
+    icon: <FileText className="h-4 w-4" />,
+    description: "Pendências relacionadas a documentos administrativos do convênio.",
+  },
+  {
+    value: "Outro",
+    label: "Outro",
+    icon: <Tag className="h-4 w-4" />,
+    description: "Outros tipos de pendências não categorizadas.",
+  },
+]
+
+const SUBTIPOS_PREDEFINIDOS = [
+  { value: "Aguardando Documentos", description: "Pendência que depende do recebimento de documentos." },
+  { value: "Em Análise", description: "Pendência que está em processo de análise pela equipe." },
+  { value: "Urgente", description: "Pendência que requer atenção imediata." },
+  { value: "Concluído", description: "Pendência que já foi resolvida, mas precisa ser registrada." },
+  { value: "Pendente", description: "Pendência em estado de espera por alguma ação." },
+]
+
+const SUBTIPOS_PERSONALIZADOS = [
+  { value: "Aguardando Parecer", description: "Pendência aguardando parecer técnico ou jurídico." },
+  { value: "Aguardando Aprovação", description: "Pendência aguardando aprovação de superior." },
+  { value: "Em Diligência", description: "Pendência em processo de diligência." },
+]
+
+// UI Components
+const FormField = ({ id, label, value, onChange, type = "text", required = false, icon, placeholder }: InputFieldProps) => (
+  <div className="space-y-2">
+    <div className="flex items-center justify-between">
+      <Label htmlFor={id} className="text-sm flex items-center gap-1">
+        {icon}
+        {label} {required && <span className="text-red-500">*</span>}
+      </Label>
+      {type === "text" && value && (
+        <div className="text-emerald-500">
+          <CheckCircle className="h-4 w-4" />
+        </div>
+      )}
+    </div>
+    <div className="relative">
+      <Input
+        id={id}
+        name={id}
+        type={type}
+        value={value}
+        onChange={onChange}
+        placeholder={placeholder}
+        className="bg-gray-800 border-gray-700 text-white focus:border-emerald-500 focus:ring-emerald-500"
+      />
+    </div>
+  </div>
+)
+
+const TipoCard = ({ tipo, isSelected, onSelect }: { 
+  tipo: typeof TIPOS_PREDEFINIDOS[0], 
+  isSelected: boolean, 
+  onSelect: () => void 
+}) => (
+  <TooltipProvider>
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <div
+          onClick={onSelect}
+          className={cn(
+            "p-3 rounded-lg border cursor-pointer transition-all flex items-center gap-2 hover:shadow-md",
+            isSelected
+              ? "bg-emerald-900/30 border-emerald-500 text-white shadow-emerald-900/20 shadow-sm"
+              : "bg-gray-800 border-gray-700 text-gray-300 hover:border-gray-600",
+          )}
+        >
+          <div
+            className={cn(
+              "p-1.5 rounded-md",
+              isSelected ? styleUtils.getTipoBadgeColor(tipo.value) : "bg-gray-700",
+            )}
+          >
+            {tipo.icon}
+          </div>
+          <span className="text-sm">{tipo.label}</span>
+        </div>
+      </TooltipTrigger>
+      <TooltipContent side="top" className="bg-gray-800 border-gray-700 max-w-xs">
+        <p className="text-xs">{tipo.description}</p>
+      </TooltipContent>
+    </Tooltip>
+  </TooltipProvider>
+)
+
+const SubtipoCard = ({ subtipo, isSelected, onSelect }: { 
+  subtipo: { value: string, description: string }, 
+  isSelected: boolean, 
+  onSelect: () => void 
+}) => (
+  <TooltipProvider>
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <div
+          onClick={onSelect}
+          className={cn(
+            "p-2 rounded-lg border cursor-pointer transition-all hover:shadow-md",
+            isSelected
+              ? "bg-gray-800 border-2 border-emerald-500 shadow-emerald-900/20 shadow-sm"
+              : "bg-gray-800 border-gray-700 hover:border-gray-600",
+          )}
+        >
+          <Badge
+            variant="outline"
+            className={cn(
+              "border w-full justify-center py-1 text-xs font-medium",
+              isSelected
+                ? styleUtils.getStatusColor(subtipo.value)
+                : "bg-gray-700 text-gray-300 border-gray-600",
+            )}
+          >
+            {subtipo.value}
+          </Badge>
+        </div>
+      </TooltipTrigger>
+      <TooltipContent side="top" className="bg-gray-800 border-gray-700">
+        <p className="text-xs">{subtipo.description}</p>
+      </TooltipContent>
+    </Tooltip>
+  </TooltipProvider>
+)
+
+const PrioridadeSelector = ({ 
+  prioridade, 
+  onSelect 
+}: { 
+  prioridade: "baixa" | "media" | "alta", 
+  onSelect: (p: "baixa" | "media" | "alta") => void 
+}) => {
+  const prioridadeConfig = {
+    baixa: {
+      dots: 1,
+      color: "blue",
+      label: "Baixa",
+      desc: "Resolução flexível",
+      tooltip: "Prioridade Baixa - Pode ser resolvida quando houver disponibilidade."
+    },
+    media: {
+      dots: 2,
+      color: "amber",
+      label: "Média",
+      desc: "Atenção necessária",
+      tooltip: "Prioridade Média - Requer atenção em tempo hábil."
+    },
+    alta: {
+      dots: 3,
+      color: "red",
+      label: "Alta",
+      desc: "Urgente",
+      tooltip: "Prioridade Alta - Requer atenção imediata e resolução urgente."
+    }
+  }
+
+  return (
+    <div className="grid grid-cols-3 gap-3">
+      {Object.entries(prioridadeConfig).map(([key, config]) => {
+        const isSelected = prioridade === key
+        const colorBase = config.color
+        return (
+          <TooltipProvider key={key}>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <div
+                  onClick={() => onSelect(key as "baixa" | "media" | "alta")}
+                  className={cn(
+                    "p-4 rounded-lg border cursor-pointer transition-all flex flex-col items-center justify-center gap-2 hover:shadow-md",
+                    isSelected
+                      ? `bg-${colorBase}-900/30 border-${colorBase}-500 text-white shadow-${colorBase}-900/20 shadow-sm`
+                      : "bg-gray-800 border-gray-700 text-gray-300 hover:border-gray-600",
+                  )}
+                >
+                  <div className="flex items-center justify-center gap-1 w-full">
+                    {Array.from({ length: config.dots }).map((_, i) => (
+                      <div key={i} className={`h-2 w-2 rounded-full bg-${colorBase}-500`}></div>
+                    ))}
+                  </div>
+                  <span className="text-sm font-medium">{config.label}</span>
+                  <span className="text-xs text-gray-400">{config.desc}</span>
+                </div>
+              </TooltipTrigger>
+              <TooltipContent side="bottom" className="bg-gray-800 border-gray-700">
+                <p className="text-xs">{config.tooltip}</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        )
+      })}
+    </div>
+  )
+}
+
+// Main Component
 export default function AddPendenciaModal({
   open,
   onOpenChange,
@@ -60,6 +322,7 @@ export default function AddPendenciaModal({
   convenioId,
   municipioId,
 }: AddPendenciaModalProps) {
+  // Initial State
   const initialFormData: NovaPendenciaType = {
     convenioId,
     municipioId,
@@ -71,17 +334,18 @@ export default function AddPendenciaModal({
     prioridade: "media",
   }
 
+  // State
   const [formData, setFormData] = useState<NovaPendenciaType>({ ...initialFormData })
   const [loading, setLoading] = useState(false)
   const [novoSubtipo, setNovoSubtipo] = useState("")
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [step, setStep] = useState(1)
-  const totalSteps = 2
   const [date, setDate] = useState<Date | undefined>(undefined)
   const [animatePreview, setAnimatePreview] = useState(false)
   const [activeTab, setActiveTab] = useState("predefinidos")
+  const totalSteps = 2
 
-  // Atualizar data quando o formData.dataLimite mudar
+  // Effects
   useEffect(() => {
     if (formData.dataLimite) {
       setDate(new Date(formData.dataLimite))
@@ -90,7 +354,6 @@ export default function AddPendenciaModal({
     }
   }, [formData.dataLimite])
 
-  // Animar a prévia quando mudar para o passo 2
   useEffect(() => {
     if (step === 2) {
       setAnimatePreview(true)
@@ -99,111 +362,11 @@ export default function AddPendenciaModal({
     }
   }, [step])
 
-  // Lista de tipos predefinidos com ícones e descrições
-  const tiposPredefinidos: Array<{ value: PendenciaTipo; label: string; icon: React.ReactNode; description: string }> =
-    [
-      {
-        value: "Prestação de Contas",
-        label: "Prestação de Contas",
-        icon: <FileText className="h-4 w-4" />,
-        description: "Pendências relacionadas à documentação financeira e prestação de contas do convênio.",
-      },
-      {
-        value: "Licitação",
-        label: "Licitação",
-        icon: <ClipboardList className="h-4 w-4" />,
-        description: "Pendências relacionadas aos processos licitatórios do convênio.",
-      },
-      {
-        value: "Execução",
-        label: "Execução",
-        icon: <CheckCircle2 className="h-4 w-4" />,
-        description: "Pendências relacionadas à execução física do objeto do convênio.",
-      },
-      {
-        value: "Documentação",
-        label: "Documentação",
-        icon: <FileText className="h-4 w-4" />,
-        description: "Pendências relacionadas a documentos administrativos do convênio.",
-      },
-      {
-        value: "Outro",
-        label: "Outro",
-        icon: <Tag className="h-4 w-4" />,
-        description: "Outros tipos de pendências não categorizadas.",
-      },
-    ]
-
-  // Lista de subtipos predefinidos com descrições
-  const subtiposPredefinidos: Array<{ value: PendenciaSubtipo; description: string }> = [
-    { value: "Aguardando Documentos", description: "Pendência que depende do recebimento de documentos." },
-    { value: "Em Análise", description: "Pendência que está em processo de análise pela equipe." },
-    { value: "Urgente", description: "Pendência que requer atenção imediata." },
-    { value: "Concluído", description: "Pendência que já foi resolvida, mas precisa ser registrada." },
-    { value: "Pendente", description: "Pendência em estado de espera por alguma ação." },
-  ]
-
-  // Lista de subtipos personalizados (simulação)
-  const subtiposPersonalizados: Array<{ value: string; description: string }> = [
-    { value: "Aguardando Parecer", description: "Pendência aguardando parecer técnico ou jurídico." },
-    { value: "Aguardando Aprovação", description: "Pendência aguardando aprovação de superior." },
-    { value: "Em Diligência", description: "Pendência em processo de diligência." },
-  ]
-
-  // Função para definir a cor do badge com base no tipo
-  const getTipoBadgeColor = (tipo: string) => {
-    switch (tipo.toLowerCase()) {
-      case "prestação de contas":
-        return "bg-amber-500 hover:bg-amber-600"
-      case "licitação":
-        return "bg-blue-500 hover:bg-blue-600"
-      case "execução":
-        return "bg-green-500 hover:bg-green-600"
-      case "documentação":
-        return "bg-purple-500 hover:bg-purple-600"
-      default:
-        return "bg-gray-500 hover:bg-gray-600"
-    }
-  }
-
-  // Função para definir a cor do status/subtipo
-  const getStatusColor = (status: string) => {
-    switch (status.toLowerCase()) {
-      case "aguardando documentos":
-        return "bg-yellow-500/20 text-yellow-400 border-yellow-500/50"
-      case "em análise":
-        return "bg-blue-500/20 text-blue-400 border-blue-500/50"
-      case "urgente":
-        return "bg-red-500/20 text-red-400 border-red-500/50"
-      case "concluído":
-        return "bg-green-500/20 text-green-400 border-green-500/50"
-      case "pendente":
-        return "bg-orange-500/20 text-orange-400 border-orange-500/50"
-      default:
-        return "bg-gray-700 text-gray-300 border-gray-600"
-    }
-  }
-
-  // Função para definir a cor da prioridade
-  const getPrioridadeColor = (prioridade: string) => {
-    switch (prioridade.toLowerCase()) {
-      case "alta":
-        return "bg-red-500/20 text-red-400 border-red-500/50"
-      case "media":
-        return "bg-amber-500/20 text-amber-400 border-amber-500/50"
-      case "baixa":
-        return "bg-blue-500/20 text-blue-400 border-blue-500/50"
-      default:
-        return "bg-gray-700 text-gray-300 border-gray-600"
-    }
-  }
-
-  // Manipular mudanças nos campos
+  // Form Handlers
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target
     setFormData({ ...formData, [name]: value })
 
-    // Limpar erros quando o campo é editado
     if (errors[name]) {
       setErrors((prev) => {
         const newErrors = { ...prev }
@@ -213,7 +376,6 @@ export default function AddPendenciaModal({
     }
   }
 
-  // Adicionando novo subtipo personalizado
   const handleAddSubtipo = () => {
     if (novoSubtipo.trim()) {
       setFormData({
@@ -229,7 +391,6 @@ export default function AddPendenciaModal({
     }
   }
 
-  // Resetar formulário
   const resetForm = () => {
     setFormData({ ...initialFormData })
     setNovoSubtipo("")
@@ -239,29 +400,21 @@ export default function AddPendenciaModal({
     setActiveTab("predefinidos")
   }
 
-  // Validação do formulário
+  // Validation
   const validateStep = (currentStep: number) => {
     const newErrors: Record<string, string> = {}
 
     if (currentStep === 1) {
-      if (!formData.descricao.trim()) {
-        newErrors.descricao = "A descrição é obrigatória"
-      }
-
-      if (!formData.tipo) {
-        newErrors.tipo = "O tipo é obrigatório"
-      }
-
-      if (!formData.subtipo) {
-        newErrors.subtipo = "O subtipo é obrigatório"
-      }
+      if (!formData.descricao.trim()) newErrors.descricao = "A descrição é obrigatória"
+      if (!formData.tipo) newErrors.tipo = "O tipo é obrigatório"
+      if (!formData.subtipo) newErrors.subtipo = "O subtipo é obrigatório"
     }
 
     setErrors(newErrors)
     return Object.keys(newErrors).length === 0
   }
 
-  // Avançar para o próximo passo
+  // Navigation
   const handleNextStep = () => {
     if (validateStep(step)) {
       setStep(step + 1)
@@ -274,12 +427,11 @@ export default function AddPendenciaModal({
     }
   }
 
-  // Voltar para o passo anterior
   const handlePrevStep = () => {
     setStep(step - 1)
   }
 
-  // Salvar pendência
+  // Submit
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
@@ -296,13 +448,11 @@ export default function AddPendenciaModal({
 
     try {
       await onSave(formData)
-
       toast({
         title: "Pendência adicionada",
         description: "A pendência foi criada com sucesso",
         duration: 3000,
       })
-
       onOpenChange(false)
       resetForm()
     } catch (error) {
@@ -317,11 +467,9 @@ export default function AddPendenciaModal({
     }
   }
 
-  // Selecionar tipo com card
+  // Selection Handlers
   const handleSelectTipo = (tipo: PendenciaTipo) => {
     setFormData({ ...formData, tipo })
-
-    // Limpar erro de tipo
     if (errors.tipo) {
       setErrors((prev) => {
         const newErrors = { ...prev }
@@ -331,11 +479,8 @@ export default function AddPendenciaModal({
     }
   }
 
-  // Selecionar subtipo com card
   const handleSelectSubtipo = (subtipo: PendenciaSubtipo | string) => {
     setFormData({ ...formData, subtipo })
-
-    // Limpar erro de subtipo
     if (errors.subtipo) {
       setErrors((prev) => {
         const newErrors = { ...prev }
@@ -345,18 +490,16 @@ export default function AddPendenciaModal({
     }
   }
 
-  // Selecionar prioridade
   const handleSelectPrioridade = (prioridade: "baixa" | "media" | "alta") => {
     setFormData({ ...formData, prioridade })
   }
 
-  // Atualizar data limite
+  // Date Handling
   const handleDateSelect = (date: Date | undefined) => {
     setDate(date)
     if (date) {
       setFormData({ ...formData, dataLimite: date.toISOString() })
     } else {
-      // Se a data for undefined, remover a data limite
       const { dataLimite, ...rest } = formData
       setFormData(rest as NovaPendenciaType)
     }
@@ -380,7 +523,7 @@ export default function AddPendenciaModal({
             Adicione uma nova pendência ao convênio
           </DialogDescription>
 
-          {/* Indicador de progresso */}
+          {/* Progress Indicator */}
           <div className="mt-4 flex items-center gap-2">
             {Array.from({ length: totalSteps }).map((_, index) => (
               <div key={index} className="flex flex-col items-center">
@@ -401,10 +544,10 @@ export default function AddPendenciaModal({
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="p-6 space-y-4 max-h-[70vh] overflow-y-auto">
-          {/* Passo 1: Informações básicas */}
+          {/* Step 1: Basic Information */}
           {step === 1 && (
             <div className="space-y-6">
-              {/* Descrição */}
+              {/* Description Field */}
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
                   <Label htmlFor="descricao" className="text-sm flex items-center gap-1">
@@ -452,7 +595,7 @@ export default function AddPendenciaModal({
                 )}
               </div>
 
-              {/* Detalhes */}
+              {/* Details Textarea */}
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
                   <Label htmlFor="detalhes" className="text-sm flex items-center gap-1">
@@ -471,7 +614,7 @@ export default function AddPendenciaModal({
                 />
               </div>
 
-              {/* Tipo */}
+              {/* Type Selection */}
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
                   <Label className="text-sm flex items-center gap-1">
@@ -483,35 +626,13 @@ export default function AddPendenciaModal({
                   </Badge>
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                  {tiposPredefinidos.map((tipo) => (
-                    <TooltipProvider key={tipo.value}>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <div
-                            onClick={() => handleSelectTipo(tipo.value)}
-                            className={cn(
-                              "p-3 rounded-lg border cursor-pointer transition-all flex items-center gap-2 hover:shadow-md",
-                              formData.tipo === tipo.value
-                                ? "bg-emerald-900/30 border-emerald-500 text-white shadow-emerald-900/20 shadow-sm"
-                                : "bg-gray-800 border-gray-700 text-gray-300 hover:border-gray-600",
-                            )}
-                          >
-                            <div
-                              className={cn(
-                                "p-1.5 rounded-md",
-                                formData.tipo === tipo.value ? getTipoBadgeColor(tipo.value) : "bg-gray-700",
-                              )}
-                            >
-                              {tipo.icon}
-                            </div>
-                            <span className="text-sm">{tipo.label}</span>
-                          </div>
-                        </TooltipTrigger>
-                        <TooltipContent side="top" className="bg-gray-800 border-gray-700 max-w-xs">
-                          <p className="text-xs">{tipo.description}</p>
-                        </TooltipContent>
-                      </Tooltip>
-                    </TooltipProvider>
+                  {TIPOS_PREDEFINIDOS.map((tipo) => (
+                    <TipoCard 
+                      key={tipo.value}
+                      tipo={tipo} 
+                      isSelected={formData.tipo === tipo.value}
+                      onSelect={() => handleSelectTipo(tipo.value as PendenciaTipo)}
+                    />
                   ))}
                 </div>
                 {errors.tipo && (
@@ -522,7 +643,7 @@ export default function AddPendenciaModal({
                 )}
               </div>
 
-              {/* Subtipo */}
+              {/* Subtype Selection */}
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
                   <Label className="text-sm flex items-center gap-1">
@@ -533,7 +654,7 @@ export default function AddPendenciaModal({
                     variant="outline"
                     className={cn(
                       "border rounded-full px-3 py-1 text-xs font-medium",
-                      formData.subtipo ? getStatusColor(formData.subtipo) : "bg-gray-800 text-gray-300 border-gray-700",
+                      formData.subtipo ? styleUtils.getStatusColor(formData.subtipo) : "bg-gray-800 text-gray-300 border-gray-700",
                     )}
                   >
                     {formData.subtipo || "Nenhum selecionado"}
@@ -558,37 +679,13 @@ export default function AddPendenciaModal({
 
                   <TabsContent value="predefinidos" className="mt-2">
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
-                      {subtiposPredefinidos.map((subtipo) => (
-                        <TooltipProvider key={subtipo.value}>
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <div
-                                onClick={() => handleSelectSubtipo(subtipo.value)}
-                                className={cn(
-                                  "p-2 rounded-lg border cursor-pointer transition-all hover:shadow-md",
-                                  formData.subtipo === subtipo.value
-                                    ? "bg-gray-800 border-2 border-emerald-500 shadow-emerald-900/20 shadow-sm"
-                                    : "bg-gray-800 border-gray-700 hover:border-gray-600",
-                                )}
-                              >
-                                <Badge
-                                  variant="outline"
-                                  className={cn(
-                                    "border w-full justify-center py-1 text-xs font-medium",
-                                    formData.subtipo === subtipo.value
-                                      ? getStatusColor(subtipo.value)
-                                      : "bg-gray-700 text-gray-300 border-gray-600",
-                                  )}
-                                >
-                                  {subtipo.value}
-                                </Badge>
-                              </div>
-                            </TooltipTrigger>
-                            <TooltipContent side="top" className="bg-gray-800 border-gray-700">
-                              <p className="text-xs">{subtipo.description}</p>
-                            </TooltipContent>
-                          </Tooltip>
-                        </TooltipProvider>
+                      {SUBTIPOS_PREDEFINIDOS.map((subtipo) => (
+                        <SubtipoCard
+                          key={subtipo.value}
+                          subtipo={subtipo}
+                          isSelected={formData.subtipo === subtipo.value}
+                          onSelect={() => handleSelectSubtipo(subtipo.value)}
+                        />
                       ))}
                     </div>
                   </TabsContent>
@@ -596,41 +693,17 @@ export default function AddPendenciaModal({
                   <TabsContent value="personalizados" className="mt-2">
                     <div className="space-y-4">
                       <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
-                        {subtiposPersonalizados.map((subtipo) => (
-                          <TooltipProvider key={subtipo.value}>
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <div
-                                  onClick={() => handleSelectSubtipo(subtipo.value)}
-                                  className={cn(
-                                    "p-2 rounded-lg border cursor-pointer transition-all hover:shadow-md",
-                                    formData.subtipo === subtipo.value
-                                      ? "bg-gray-800 border-2 border-emerald-500 shadow-emerald-900/20 shadow-sm"
-                                      : "bg-gray-800 border-gray-700 hover:border-gray-600",
-                                  )}
-                                >
-                                  <Badge
-                                    variant="outline"
-                                    className={cn(
-                                      "border w-full justify-center py-1 text-xs font-medium",
-                                      formData.subtipo === subtipo.value
-                                        ? getStatusColor(subtipo.value)
-                                        : "bg-gray-700 text-gray-300 border-gray-600",
-                                    )}
-                                  >
-                                    {subtipo.value}
-                                  </Badge>
-                                </div>
-                              </TooltipTrigger>
-                              <TooltipContent side="top" className="bg-gray-800 border-gray-700">
-                                <p className="text-xs">{subtipo.description}</p>
-                              </TooltipContent>
-                            </Tooltip>
-                          </TooltipProvider>
+                        {SUBTIPOS_PERSONALIZADOS.map((subtipo) => (
+                          <SubtipoCard
+                            key={subtipo.value}
+                            subtipo={subtipo}
+                            isSelected={formData.subtipo === subtipo.value}
+                            onSelect={() => handleSelectSubtipo(subtipo.value)}
+                          />
                         ))}
                       </div>
 
-                      {/* Novo Subtipo */}
+                      {/* New Subtype Input */}
                       <div className="space-y-2">
                         <Label htmlFor="novoSubtipo" className="text-sm flex items-center gap-1">
                           <Plus className="h-4 w-4 text-emerald-400" />
@@ -670,118 +743,32 @@ export default function AddPendenciaModal({
             </div>
           )}
 
-          {/* Passo 2: Informações adicionais */}
+          {/* Step 2: Additional Information */}
           {step === 2 && (
             <div className="space-y-6">
-              {/* Prioridade */}
+              {/* Priority */}
               <div className="space-y-2">
                 <Label className="text-sm flex items-center gap-1">
                   <AlertCircle className="h-4 w-4 text-emerald-400" />
                   Prioridade
                 </Label>
-                <div className="grid grid-cols-3 gap-3">
-                  <TooltipProvider>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <div
-                          onClick={() => handleSelectPrioridade("baixa")}
-                          className={cn(
-                            "p-4 rounded-lg border cursor-pointer transition-all flex flex-col items-center justify-center gap-2 hover:shadow-md",
-                            formData.prioridade === "baixa"
-                              ? "bg-blue-900/30 border-blue-500 text-white shadow-blue-900/20 shadow-sm"
-                              : "bg-gray-800 border-gray-700 text-gray-300 hover:border-gray-600",
-                          )}
-                        >
-                          <div className="flex items-center justify-center w-full">
-                            <div className="h-2 w-2 rounded-full bg-blue-500"></div>
-                          </div>
-                          <span className="text-sm font-medium">Baixa</span>
-                          <span className="text-xs text-gray-400">Resolução flexível</span>
-                        </div>
-                      </TooltipTrigger>
-                      <TooltipContent side="bottom" className="bg-gray-800 border-gray-700">
-                        <p className="text-xs">Prioridade Baixa - Pode ser resolvida quando houver disponibilidade.</p>
-                      </TooltipContent>
-                    </Tooltip>
-                  </TooltipProvider>
-
-                  <TooltipProvider>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <div
-                          onClick={() => handleSelectPrioridade("media")}
-                          className={cn(
-                            "p-4 rounded-lg border cursor-pointer transition-all flex flex-col items-center justify-center gap-2 hover:shadow-md",
-                            formData.prioridade === "media"
-                              ? "bg-amber-900/30 border-amber-500 text-white shadow-amber-900/20 shadow-sm"
-                              : "bg-gray-800 border-gray-700 text-gray-300 hover:border-gray-600",
-                          )}
-                        >
-                          <div className="flex items-center justify-center gap-1 w-full">
-                            <div className="h-2 w-2 rounded-full bg-amber-500"></div>
-                            <div className="h-2 w-2 rounded-full bg-amber-500"></div>
-                          </div>
-                          <span className="text-sm font-medium">Média</span>
-                          <span className="text-xs text-gray-400">Atenção necessária</span>
-                        </div>
-                      </TooltipTrigger>
-                      <TooltipContent side="bottom" className="bg-gray-800 border-gray-700">
-                        <p className="text-xs">Prioridade Média - Requer atenção em tempo hábil.</p>
-                      </TooltipContent>
-                    </Tooltip>
-                  </TooltipProvider>
-
-                  <TooltipProvider>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <div
-                          onClick={() => handleSelectPrioridade("alta")}
-                          className={cn(
-                            "p-4 rounded-lg border cursor-pointer transition-all flex flex-col items-center justify-center gap-2 hover:shadow-md",
-                            formData.prioridade === "alta"
-                              ? "bg-red-900/30 border-red-500 text-white shadow-red-900/20 shadow-sm"
-                              : "bg-gray-800 border-gray-700 text-gray-300 hover:border-gray-600",
-                          )}
-                        >
-                          <div className="flex items-center justify-center gap-1 w-full">
-                            <div className="h-2 w-2 rounded-full bg-red-500"></div>
-                            <div className="h-2 w-2 rounded-full bg-red-500"></div>
-                            <div className="h-2 w-2 rounded-full bg-red-500"></div>
-                          </div>
-                          <span className="text-sm font-medium">Alta</span>
-                          <span className="text-xs text-gray-400">Urgente</span>
-                        </div>
-                      </TooltipTrigger>
-                      <TooltipContent side="bottom" className="bg-gray-800 border-gray-700">
-                        <p className="text-xs">Prioridade Alta - Requer atenção imediata e resolução urgente.</p>
-                      </TooltipContent>
-                    </Tooltip>
-                  </TooltipProvider>
-                </div>
+                <PrioridadeSelector 
+                  prioridade={formData.prioridade} 
+                  onSelect={handleSelectPrioridade} 
+                />
               </div>
 
-              {/* Responsável */}
-              <div className="space-y-2">
-                <Label htmlFor="responsavel" className="text-sm flex items-center gap-1">
-                  <User className="h-4 w-4 text-emerald-400" />
-                  Responsável
-                </Label>
-                <div className="relative">
-                  <Input
-                    id="responsavel"
-                    name="responsavel"
-                    value={formData.responsavel || ""}
-                    onChange={handleChange}
-                    placeholder="Nome do responsável"
-                    className="bg-gray-800 border-gray-700 text-white focus:border-emerald-500 focus:ring-emerald-500 pl-9"
-                  />
-                  <div className="absolute left-3 top-2.5 text-gray-500">
-                    <User className="h-4 w-4" />
-                  </div>
-                </div>
-              </div>
+              {/* Responsible */}
+              <FormField
+                id="responsavel"
+                label="Responsável"
+                value={formData.responsavel || ""}
+                onChange={handleChange}
+                icon={<User className="h-4 w-4 text-emerald-400" />}
+                placeholder="Nome do responsável"
+              />
 
-              {/* Data Limite */}
+              {/* Deadline */}
               <div className="space-y-2">
                 <Label htmlFor="dataLimite" className="text-sm flex items-center gap-1">
                   <Calendar className="h-4 w-4 text-emerald-400" />
@@ -829,7 +816,7 @@ export default function AddPendenciaModal({
                 </div>
               </div>
 
-              {/* Prévia da pendência */}
+              {/* Preview */}
               <div
                 className={cn(
                   "mt-6 p-4 bg-gray-800 rounded-lg border border-gray-700 transition-all duration-300",
@@ -843,7 +830,7 @@ export default function AddPendenciaModal({
                 <div className="space-y-3">
                   <div className="flex items-center justify-between">
                     <Badge
-                      className={cn("px-3 py-1 text-white font-medium rounded-md", getTipoBadgeColor(formData.tipo))}
+                      className={cn("px-3 py-1 text-white font-medium rounded-md", styleUtils.getTipoBadgeColor(formData.tipo))}
                     >
                       {formData.tipo}
                     </Badge>
@@ -852,7 +839,7 @@ export default function AddPendenciaModal({
                       variant="outline"
                       className={cn(
                         "border rounded-full px-3 py-1 text-xs font-medium",
-                        getStatusColor(formData.subtipo),
+                        styleUtils.getStatusColor(formData.subtipo),
                       )}
                     >
                       {formData.subtipo}
@@ -868,7 +855,7 @@ export default function AddPendenciaModal({
                       variant="outline"
                       className={cn(
                         "border rounded-full px-3 py-1 text-xs font-medium",
-                        getPrioridadeColor(formData.prioridade),
+                        styleUtils.getPrioridadeColor(formData.prioridade),
                       )}
                     >
                       {formData.prioridade === "alta"
@@ -955,4 +942,3 @@ export default function AddPendenciaModal({
     </Dialog>
   )
 }
-

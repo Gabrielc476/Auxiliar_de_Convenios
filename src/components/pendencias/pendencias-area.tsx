@@ -147,36 +147,68 @@ export default function PendenciasArea({ convenioId, municipioId }: PendenciasAr
   }
 
   // Manipulador para atualizar pendências
-  const handleUpdatePendencia = async (pendenciaAtualizada: PendenciaType) => {
-    try {
-      // Extrair apenas os campos a serem atualizados
-      const { id, ...updateData } = pendenciaAtualizada
-
-      const updated = await apiService.updatePendencia(id, updateData)
-
+  // Manipulador para atualizar pendências
+const handleUpdatePendencia = async (pendenciaAtualizada: PendenciaType) => {
+  try {
+    // Extrair o ID e os dados a serem atualizados
+    const { id, ...updateData } = pendenciaAtualizada;
+    
+    // Verificar se é um ID temporário (começa com "temp-id")
+    if (id.startsWith("temp-id")) {
+      // Para IDs temporários, criar uma nova pendência em vez de atualizar
+      const novaPendencia: NovaPendenciaType = {
+        convenioId: updateData.convenioId,
+        municipioId: updateData.municipioId,
+        tipo: updateData.tipo as PendenciaType,
+        subtipo: updateData.subtipo,
+        descricao: updateData.descricao,
+        detalhes: updateData.detalhes,
+        responsavel: updateData.responsavel,
+        dataLimite: updateData.dataLimite,
+        prioridade: updateData.prioridade as "baixa" | "media" | "alta",
+      };
+      
+      // Criar nova pendência
+      const response = await apiService.createPendencia(novaPendencia);
+      
+      // Atualizar a lista local substituindo o item com ID temporário pelo novo
+      setPendencias((prev) => prev.map((p) => 
+        p.id === id ? { ...response, id: response.id || id } : p
+      ));
+      
+      toast({
+        title: "Pendência criada",
+        description: "As alterações foram salvas com sucesso!",
+        duration: 3000,
+      });
+    } else {
+      // Para IDs reais, proceder com a atualização normal
+      const updated = await apiService.updatePendencia(id, updateData);
+      
       // Garantir que a pendência atualizada tenha o mesmo ID
       const updatedWithId = {
         ...updated,
-        id: id || updated.id || `update-id-${Date.now()}`,
-      }
-
-      setPendencias((prev) => prev.map((p) => (p.id === id ? updatedWithId : p)))
-
+        id: id || updated.id,
+      };
+      
+      setPendencias((prev) => prev.map((p) => (p.id === id ? updatedWithId : p)));
+      
       toast({
         title: "Pendência atualizada",
         description: "As alterações foram salvas com sucesso!",
         duration: 3000,
-      })
-    } catch (err: any) {
-      console.error("Erro ao atualizar pendência:", err)
-      toast({
-        title: "Erro ao atualizar pendência",
-        description: err.message || "Ocorreu um erro ao salvar as alterações",
-        variant: "destructive",
-        duration: 3000,
-      })
+      });
     }
+  } catch (err: any) {
+    console.error("Erro ao atualizar pendência:", err);
+    toast({
+      title: "Erro ao atualizar pendência",
+      description: err.message || "Ocorreu um erro ao salvar as alterações",
+      variant: "destructive",
+      duration: 3000,
+    });
   }
+};
 
   // Manipulador para excluir pendências
   const handleDeletePendencia = async (id: string) => {

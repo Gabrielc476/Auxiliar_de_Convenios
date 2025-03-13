@@ -103,7 +103,7 @@ export default function MunicipiosDadosPage() {
     try {
       // Usando o serviço de API centralizado
       const data = await apiService.getMunicipiosDados();
-
+      console.log(data)
       // Adicionar ids temporários se não existirem
       const municipiosWithIds = data.map((m, index) => ({
         ...m,
@@ -168,35 +168,121 @@ export default function MunicipiosDadosPage() {
 
   const handleSaveMunicipio = async (updatedMunicipio: MunicipioDados) => {
     try {
-      if (updatedMunicipio.id) {
-        // Usando o serviço de API centralizado para atualizar os dados
+      // Check if we're dealing with a temporary ID
+      if (updatedMunicipio.id && updatedMunicipio.id.startsWith('temp-id')) {
+        // This has a temporary ID - we need to create, not update
+        console.log("Creating new municipality from temp ID:", updatedMunicipio.municipio);
+        
+        // Create the municipality
+        const response = await apiService.createMunicipio({
+          municipio: updatedMunicipio.municipio,
+          cnpj: updatedMunicipio.cnpj,
+          prefeito: updatedMunicipio.prefeito,
+          endereco: updatedMunicipio.endereco,
+          e_mail: updatedMunicipio.e_mail,
+          telefone: updatedMunicipio.telefone,
+          rg_prefeito: updatedMunicipio.rg_prefeito,
+          cpf_prefeito: updatedMunicipio.cpf_prefeito,
+          operacional: updatedMunicipio.operacional
+        });
+        
+        // Update local state
+        setMunicipios((prev) => {
+          // Find if there's any with this temp ID to replace
+          const hasTempId = prev.some(m => m.id === updatedMunicipio.id);
+          
+          if (hasTempId) {
+            // Replace the one with temp ID
+            return prev.map(m => 
+              m.id === updatedMunicipio.id 
+                ? { ...updatedMunicipio, id: response.id } 
+                : m
+            );
+          } else {
+            // Add as new
+            return [...prev, { ...updatedMunicipio, id: response.id }];
+          }
+        });
+        
+        toast({
+          title: "Município criado",
+          description: `${updatedMunicipio.municipio} foi criado com sucesso.`,
+          duration: 3000,
+        });
+      } else if (updatedMunicipio.id) {
+        // This has a real ID - proceed with update
+        console.log("Updating existing municipality:", updatedMunicipio.id, updatedMunicipio.municipio);
+        
         await apiService.updateMunicipioDados(
           updatedMunicipio.id,
-          updatedMunicipio
+          {
+            municipio: updatedMunicipio.municipio,
+            cnpj: updatedMunicipio.cnpj,
+            prefeito: updatedMunicipio.prefeito,
+            endereco: updatedMunicipio.endereco,
+            e_mail: updatedMunicipio.e_mail,
+            telefone: updatedMunicipio.telefone,
+            rg_prefeito: updatedMunicipio.rg_prefeito,
+            cpf_prefeito: updatedMunicipio.cpf_prefeito,
+            operacional: updatedMunicipio.operacional
+          }
         );
+        
+        // Update local state
+        setMunicipios(prev => 
+          prev.map(m => m.id === updatedMunicipio.id ? updatedMunicipio : m)
+        );
+        
+        toast({
+          title: "Dados atualizados",
+          description: `Os dados de ${updatedMunicipio.municipio} foram salvos.`,
+          duration: 3000,
+        });
+      } else {
+        // No ID at all - this is a new municipality
+        console.log("Creating brand new municipality:", updatedMunicipio.municipio);
+        
+        const response = await apiService.createMunicipio({
+          municipio: updatedMunicipio.municipio,
+          cnpj: updatedMunicipio.cnpj,
+          prefeito: updatedMunicipio.prefeito,
+          endereco: updatedMunicipio.endereco,
+          e_mail: updatedMunicipio.e_mail,
+          telefone: updatedMunicipio.telefone,
+          rg_prefeito: updatedMunicipio.rg_prefeito,
+          cpf_prefeito: updatedMunicipio.cpf_prefeito,
+          operacional: updatedMunicipio.operacional
+        });
+        
+        // Add to local state
+        setMunicipios(prev => [...prev, { ...updatedMunicipio, id: response.id }]);
+        
+        toast({
+          title: "Município criado",
+          description: `${updatedMunicipio.municipio} foi criado com sucesso.`,
+          duration: 3000,
+        });
       }
-
-      setMunicipios((prev) =>
-        prev.map((m) => (m.id === updatedMunicipio.id ? updatedMunicipio : m))
-      );
-
-      toast({
-        title: "Dados atualizados",
-        description: `Os dados de ${updatedMunicipio.municipio} foram salvos.`,
-        duration: 3000,
-      });
     } catch (error: any) {
-      console.error("Erro ao atualizar município:", error);
-      toast({
-        title: "Erro na atualização",
-        description: error.message || "Não foi possível salvar as alterações",
-        variant: "destructive",
-      });
+      console.error("Erro ao processar município:", error);
+      
+      if (error.message && error.message.includes("Já existe um município")) {
+        toast({
+          title: "Erro",
+          description: `Já existe um município cadastrado com o nome "${updatedMunicipio.municipio}". Use um nome diferente.`,
+          variant: "destructive",
+        });
+      } else {
+        toast({
+          title: "Erro na operação",
+          description: error.message || "Não foi possível salvar as alterações",
+          variant: "destructive",
+        });
+      }
     } finally {
       setEditModalOpen(false);
     }
   };
-
   const handleAddMunicipio = (newMunicipio: MunicipioDados) => {
     // Aqui você implementaria a lógica para adicionar o município à lista
     setMunicipios(prev => [...prev, newMunicipio]);

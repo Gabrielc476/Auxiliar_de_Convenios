@@ -145,7 +145,7 @@ export default function EditMunicipalityModal({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-
+  
     if (!validateForm()) {
       toast({
         title: "Formulário inválido",
@@ -154,20 +154,64 @@ export default function EditMunicipalityModal({
       });
       return;
     }
-
+  
     setLoading(true);
-
+  
     try {
-      // Aqui passamos para o callback de salvamento e deixamos o componente pai
-      // decidir como processar a atualização usando o apiService
-      onSave(formData);
-    } catch (error: any) {
-      console.error("Erro ao salvar dados:", error);
+      // Get the current municipality ID - this is critical
+      const municipioId = municipio.id;
+      console.log(municipioId)
+      // If we don't have a valid ID, we can't update
+      if (!municipioId || municipioId.startsWith('temp-id')) {
+        console.error("Attempting to update municipality without valid ID:", municipioId);
+        setErrors("Não foi possível identificar o município para atualização. ID inválido.");
+        setLoading(false);
+        return;
+      }
+      
+      console.log("Updating municipality with ID:", municipioId, "Name:", formData.municipio);
+      
+      // Always perform an UPDATE operation for an existing municipality
+      await apiService.updateMunicipioDados(
+        municipioId,
+        // Send without ID to avoid any ID issues with MongoDB
+        {
+          municipio: formData.municipio,
+          cnpj: formData.cnpj,
+          prefeito: formData.prefeito,
+          endereco: formData.endereco,
+          e_mail: formData.e_mail,
+          telefone: formData.telefone,
+          rg_prefeito: formData.rg_prefeito,
+          cpf_prefeito: formData.cpf_prefeito,
+          operacional: formData.operacional
+        }
+      );
+  
+      // Always maintain the original ID in the updated data
+      const updatedMunicipioWithId = {
+        ...formData,
+        id: municipioId // Preserve the original ID
+      };
+      
+      // Call the parent callback with the updated data
+      onSave(updatedMunicipioWithId);
+      
       toast({
-        title: "Erro",
-        description: error.message || "Ocorreu um erro ao salvar os dados.",
-        variant: "destructive",
+        title: "Dados atualizados",
+        description: `Os dados de ${formData.municipio} foram salvos com sucesso.`,
+        duration: 3000,
       });
+    } catch (error: any) {
+      console.error("Erro ao atualizar município:", error);
+      
+      // Check for specific error messages
+      if (error.message && error.message.includes("Já existe um município")) {
+        setErrors(`Este nome de município já está em uso. Por favor, escolha outro nome.`);
+      } else {
+        setErrors(error.message || "Ocorreu um erro ao salvar os dados.");
+      }
+      
       setLoading(false);
     }
   };
