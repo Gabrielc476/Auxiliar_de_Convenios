@@ -6,12 +6,15 @@ import { useParams } from "next/navigation"
 import { useEffect, useState } from "react"
 import type { Convenio } from "@/interfaces/municipioInterfaces"
 import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Separator } from "@/components/ui/separator"
-import { Landmark, Calendar, FileText, ClipboardList, BarChart3, Building2, ArrowUpRight } from "lucide-react"
+import { Landmark, Calendar, FileText, ClipboardList, BarChart3, Building2, ArrowUpRight, Edit, Save } from "lucide-react"
 import { apiService } from "@/services/api"
 import { Loading, ErrorMessage } from "@/components/ui/feedback"
 import PendenciasArea from "@/components/pendencias/pendencias-area"
+import EditConvenioModal from "@/components/edit-convenio-modal"
+import { toast } from "@/components/ui/use-toast"
 
 // Componente reutilizável para itens de informação
 interface InfoItemProps {
@@ -53,6 +56,7 @@ export default function ConvenioDetailPage() {
   const [data, setData] = useState<Convenio | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [editModalOpen, setEditModalOpen] = useState(false)
 
   const municipio = decodeURIComponent(params.municipio as string)
   const convenio = decodeURIComponent(params.convenio as string)
@@ -110,14 +114,24 @@ export default function ConvenioDetailPage() {
       <div className="max-w-5xl mx-auto">
         {/* Cabeçalho */}
         <div className="mb-8 animate-fade-in">
-          <div className="flex items-center gap-2 mb-4">
-            <Badge variant="outline" className="bg-gray-800 text-emerald-400 border-gray-700">
-              CONVÊNIO
-            </Badge>
-            <Separator className="flex-1 bg-gray-800" />
-            <Badge variant="outline" className="bg-gray-800 text-gray-300 border-gray-700">
-              {municipio}
-            </Badge>
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-2">
+              <Badge variant="outline" className="bg-gray-800 text-emerald-400 border-gray-700">
+                CONVÊNIO
+              </Badge>
+              <Badge variant="outline" className="bg-gray-800 text-gray-300 border-gray-700">
+                {municipio}
+              </Badge>
+            </div>
+            <Button 
+              variant="outline" 
+              size="sm" 
+              className="border-gray-700 text-emerald-400 hover:bg-emerald-700 hover:text-white hover:border-emerald-700 transition-all duration-200"
+              onClick={() => setEditModalOpen(true)}
+            >
+              <Edit className="h-4 w-4 mr-2" />
+              Editar Convênio
+            </Button>
           </div>
 
           <h1 className="text-2xl md:text-3xl font-bold text-white mb-3 flex items-center gap-2">
@@ -128,14 +142,29 @@ export default function ConvenioDetailPage() {
         </div>
 
         {/* Barra de Progresso */}
-        <Card className="bg-gray-800 border-gray-700 mb-8 overflow-hidden">
+        <Card className="bg-gray-800 border-gray-700 mb-8 overflow-hidden hover:border-gray-600 transition-all duration-200 group">
           <CardContent className="p-6">
-            <div className="flex items-center justify-between mb-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-4 gap-2">
               <div className="flex items-center gap-2">
-                <BarChart3 className="h-5 w-5 text-emerald-400" />
+                <div className="p-2 rounded-md bg-gray-700 group-hover:bg-gray-600 transition-colors">
+                  <BarChart3 className="h-5 w-5 text-emerald-400" />
+                </div>
                 <h2 className="text-xl font-semibold text-white">Execução da Obra</h2>
               </div>
-              <Badge className={`${getProgressColor()} text-white`}>{dados?.percentual_execucao_obra}</Badge>
+              <div className="flex items-center gap-3">
+                <Badge className={`${getProgressColor()} text-white px-3 py-1 text-sm`}>
+                  {dados?.percentual_execucao_obra}
+                </Badge>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="text-gray-400 hover:text-white hover:bg-gray-700 transition-colors p-2 h-8 w-8"
+                  onClick={() => setEditModalOpen(true)}
+                  title="Editar progresso"
+                >
+                  <Edit className="h-4 w-4" />
+                </Button>
+              </div>
             </div>
             <div className="w-full bg-gray-700 rounded-full h-4 overflow-hidden">
               <div
@@ -200,7 +229,27 @@ export default function ConvenioDetailPage() {
           </div>
         </div>
       </div>
+
+      {/* Edit Convenio Modal */}
+      {data && (
+        <EditConvenioModal
+          convenio={data}
+          municipio={municipio}
+          open={editModalOpen}
+          onOpenChange={setEditModalOpen}
+          onSave={handleConvenioUpdate}
+        />
+      )}
     </div>
   )
-}
 
+  // Handler to update convenio data
+  function handleConvenioUpdate(updatedConvenio: Convenio) {
+    setData(updatedConvenio);
+    toast({
+      title: "Convênio atualizado",
+      description: "As informações do convênio foram atualizadas com sucesso!",
+      duration: 3000,
+    });
+  }
+}

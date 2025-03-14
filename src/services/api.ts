@@ -15,6 +15,28 @@ import {
 } from "../interfaces/pendenciaInterfaces";
 import { ReminderType, NewReminderType } from "@/interfaces/reminderInterfaces";
 
+// Define a type for updating convenio data
+export interface UpdateConvenioData {
+  convenio: string;
+  objeto: string;
+  dados: Array<{
+    valor_repasse: string;
+    valor_contrapartida: string;
+    percentual_recurso_repassado: string;
+    valor_desbloqueado_empresa: string;
+    percentual_execucao_obra: string;
+    vigencia_convenio: string;
+    dados_bancarios: string;
+    vigencia_lac: string;
+    processo_licitatorio: string;
+    empresa_executora: string;
+    valor_contrato_empresa: string;
+    vigencia_contrato_empresa: string;
+    prazo_pagamento_empresa: string;
+    outros_dados: string[];
+  }>;
+}
+
 // Usando constantes para evitar strings mágicas
 const API_CONFIG = {
   BASE_URL: process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000",
@@ -126,6 +148,18 @@ class ApiService {
     return this.request<any>({
       method: "POST",
       url: `/convenios/${encodeURIComponent(municipio)}`,
+      data,
+    });
+  }
+  
+  public async updateConvenio(
+    municipio: string, 
+    convenioId: string, 
+    data: UpdateConvenioData
+  ): Promise<Convenio> {
+    return this.request<Convenio>({
+      method: "PUT",
+      url: `/convenios/${encodeURIComponent(municipio)}/${encodeURIComponent(convenioId)}`,
       data,
     });
   }
