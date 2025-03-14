@@ -82,6 +82,59 @@ def get_convenio(current_user, municipio, convenio):
     return jsonify({"error": "Convênio não encontrado"}), 404
 
 
+@convenio_bp.route('/convenios/<path:municipio>/<path:convenio>', methods=['PUT'])
+@token_required
+def update_convenio_route(current_user, municipio, convenio):
+    """Atualizar dados de um convênio específico."""
+    try:
+        data = request.get_json()
+        if not data:
+            return jsonify({"error": "Dados não fornecidos"}), 400
+
+        # Call service function to update convenio
+        # Example implementation would be:
+        # resultado = update_convenio(municipio, convenio, data)
+
+        # For now we'll create a mock implementation
+        from app.database.repositories.municipio_repo import get_municipios
+
+        # Get all municipios
+        municipios = get_municipios()
+
+        # Find the target municipio
+        target_municipio = None
+        for m in municipios:
+            if m['municipio'] == municipio:
+                target_municipio = m
+                break
+
+        if not target_municipio:
+            return jsonify({"error": f"Município '{municipio}' não encontrado"}), 404
+
+        # Find the target convenio
+        target_convenio_index = None
+        for i, c in enumerate(target_municipio.get('convenios', [])):
+            if c['convenio'] == convenio:
+                target_convenio_index = i
+                break
+
+        if target_convenio_index is None:
+            return jsonify({"error": f"Convênio '{convenio}' não encontrado"}), 404
+
+        # Update the convenio data
+        target_municipio['convenios'][target_convenio_index] = data
+
+        # Save changes
+        from app.database.repositories.municipio_repo import save_municipio
+        save_municipio(target_municipio)
+
+        return jsonify(data), 200
+    except Exception as e:
+        print(f"Erro ao atualizar convênio: {str(e)}")
+        print(traceback.format_exc())
+        return jsonify({"error": f"Erro ao atualizar convênio: {str(e)}"}), 500
+
+
 @convenio_bp.route('/municipios/dados', methods=['GET'])
 @token_required
 def get_all_municipio_data(current_user):

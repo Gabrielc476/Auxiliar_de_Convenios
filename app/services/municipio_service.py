@@ -38,6 +38,42 @@ def get_municipio_dados():
     return [item.model_dump() for item in dados]
 
 
+def update_convenio(municipio_nome, convenio_nome, convenio_data):
+    """Atualizar dados de um convênio específico."""
+    try:
+        # Get all municipios
+        municipios = get_municipios()
+
+        # Find the target municipio
+        target_municipio = None
+        for m in municipios:
+            if m['municipio'] == municipio_nome:
+                target_municipio = m
+                break
+
+        if not target_municipio:
+            raise ValueError(f"Município '{municipio_nome}' não encontrado")
+
+        # Find the target convenio
+        target_convenio_index = None
+        for i, c in enumerate(target_municipio.get('convenios', [])):
+            if c['convenio'] == convenio_nome:
+                target_convenio_index = i
+                break
+
+        if target_convenio_index is None:
+            raise ValueError(f"Convênio '{convenio_nome}' não encontrado")
+
+        # Update the convenio data
+        target_municipio['convenios'][target_convenio_index] = convenio_data
+
+        # Save changes
+        save_municipio(target_municipio)
+
+        return convenio_data
+    except Exception as e:
+        raise Exception(f"Erro ao atualizar convênio: {str(e)}")
+
 def update_relatorio(pdf_file):
     """Atualizar relatório de convênios a partir de um arquivo PDF."""
     municipio_data = extract_data_from_pdf(pdf_file)
