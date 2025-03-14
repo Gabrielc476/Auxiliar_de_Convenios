@@ -4,7 +4,7 @@ import { useState } from "react"
 import { Card } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { AlertCircle, Clock, Edit, Trash2, User, Calendar, MoreVertical } from "lucide-react"
+import { Clock, Edit, Trash2, User, Calendar, MoreVertical, CheckCircle } from "lucide-react"
 import { formatDistanceToNow } from "date-fns"
 import { ptBR } from "date-fns/locale"
 import { cn } from "@/lib/utils"
@@ -26,15 +26,15 @@ export default function PendenciaCard({ pendencia, onDelete, onUpdate }: Pendenc
   const getTipoBadgeColor = (tipo: string) => {
     switch (tipo.toLowerCase()) {
       case "prestação de contas":
-        return "bg-amber-500 hover:bg-amber-600"
+        return "bg-amber-500/90 hover:bg-amber-500"
       case "licitação":
-        return "bg-blue-500 hover:bg-blue-600"
+        return "bg-blue-500/90 hover:bg-blue-500"
       case "execução":
-        return "bg-green-500 hover:bg-green-600"
+        return "bg-green-500/90 hover:bg-green-500"
       case "documentação":
-        return "bg-purple-500 hover:bg-purple-600"
+        return "bg-purple-500/90 hover:bg-purple-500"
       default:
-        return "bg-gray-500 hover:bg-gray-600"
+        return "bg-gray-500/90 hover:bg-gray-500"
     }
   }
 
@@ -42,15 +42,15 @@ export default function PendenciaCard({ pendencia, onDelete, onUpdate }: Pendenc
   const getStatusColor = (status: string) => {
     switch (status.toLowerCase()) {
       case "aguardando documentos":
-        return "bg-yellow-500/20 text-yellow-400 border-yellow-500/50"
+        return "bg-yellow-500/20 text-yellow-300 border-yellow-500/50"
       case "em análise":
-        return "bg-blue-500/20 text-blue-400 border-blue-500/50"
+        return "bg-blue-500/20 text-blue-300 border-blue-500/50"
       case "urgente":
-        return "bg-red-500/20 text-red-400 border-red-500/50"
+        return "bg-red-500/20 text-red-300 border-red-500/50"
       case "concluído":
-        return "bg-green-500/20 text-green-400 border-green-500/50"
+        return "bg-green-500/20 text-green-300 border-green-500/50"
       case "pendente":
-        return "bg-orange-500/20 text-orange-400 border-orange-500/50"
+        return "bg-orange-500/20 text-orange-300 border-orange-500/50"
       default:
         return "bg-gray-700 text-gray-300 border-gray-600"
     }
@@ -60,11 +60,11 @@ export default function PendenciaCard({ pendencia, onDelete, onUpdate }: Pendenc
   const getPrioridadeColor = (prioridade: string) => {
     switch (prioridade.toLowerCase()) {
       case "alta":
-        return "bg-red-500/20 text-red-400 border-red-500/50"
+        return "bg-red-500/20 text-red-300 border-red-500/50"
       case "media":
-        return "bg-amber-500/20 text-amber-400 border-amber-500/50"
+        return "bg-amber-500/20 text-amber-300 border-amber-500/50"
       case "baixa":
-        return "bg-blue-500/20 text-blue-400 border-blue-500/50"
+        return "bg-blue-500/20 text-blue-300 border-blue-500/50"
       default:
         return "bg-gray-700 text-gray-300 border-gray-600"
     }
@@ -122,7 +122,7 @@ export default function PendenciaCard({ pendencia, onDelete, onUpdate }: Pendenc
     <>
       <Card
         className={cn(
-          "bg-gray-800 border-gray-700 hover:border-gray-600 transition-all shadow-md overflow-hidden",
+          "bg-gray-800 border-gray-700 hover:border-gray-600 transition-all duration-200 shadow-md overflow-hidden group hover:shadow-lg hover:translate-y-[-2px]",
           pendencia.status === "concluida" && "border-l-4 border-l-green-500",
           pendencia.prioridade === "alta" && pendencia.status !== "concluida" && "border-l-4 border-l-red-500",
         )}
@@ -130,12 +130,14 @@ export default function PendenciaCard({ pendencia, onDelete, onUpdate }: Pendenc
         <div className="p-5 space-y-4">
           {/* Cabeçalho com tipo e data */}
           <div className="flex items-center justify-between">
-            <Badge className={cn("px-3 py-1 text-white font-medium rounded-md", getTipoBadgeColor(pendencia.tipo))}>
+            <Badge
+              className={cn("px-3 py-1 text-white font-medium rounded-md shadow-sm", getTipoBadgeColor(pendencia.tipo))}
+            >
               {pendencia.tipo}
             </Badge>
 
             <div className="flex items-center gap-2">
-              <div className="flex items-center gap-1 text-xs text-gray-400">
+              <div className="flex items-center gap-1.5 text-xs text-gray-400 bg-gray-700/40 px-2 py-1 rounded-full">
                 <Clock className="h-3.5 w-3.5" />
                 <span>{getRelativeTime(pendencia.dataCriacao)}</span>
               </div>
@@ -145,23 +147,23 @@ export default function PendenciaCard({ pendencia, onDelete, onUpdate }: Pendenc
                   <Button
                     variant="ghost"
                     size="sm"
-                    className="h-8 w-8 p-0 text-gray-400 hover:text-white hover:bg-gray-700"
+                    className="h-8 w-8 p-0 text-gray-400 hover:text-white hover:bg-gray-700 rounded-full transition-colors"
                   >
                     <MoreVertical className="h-4 w-4" />
                     <span className="sr-only">Ações</span>
                   </Button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="bg-gray-800 border-gray-700 text-white">
+                <DropdownMenuContent align="end" className="bg-gray-800 border-gray-700 text-white shadow-xl">
                   <DropdownMenuItem
                     onClick={() => setEditModalOpen(true)}
-                    className="cursor-pointer hover:bg-gray-700 focus:bg-gray-700"
+                    className="cursor-pointer hover:bg-gray-700 focus:bg-gray-700 transition-colors"
                   >
                     <Edit className="h-4 w-4 mr-2" />
                     Editar
                   </DropdownMenuItem>
                   <DropdownMenuItem
                     onClick={handleDelete}
-                    className="cursor-pointer text-red-400 hover:text-red-300 hover:bg-red-900/30 focus:bg-red-900/30"
+                    className="cursor-pointer text-red-400 hover:text-red-300 hover:bg-red-900/30 focus:bg-red-900/30 transition-colors"
                     disabled={isDeleting}
                   >
                     {isDeleting ? (
@@ -185,20 +187,25 @@ export default function PendenciaCard({ pendencia, onDelete, onUpdate }: Pendenc
           <div className="space-y-2">
             <h3
               className={cn(
-                "text-white font-medium line-clamp-2",
+                "text-white font-medium line-clamp-2 group-hover:text-blue-50 transition-colors",
                 pendencia.status === "concluida" && "text-gray-400 line-through",
               )}
             >
               {pendencia.descricao}
             </h3>
-            <p className="text-gray-400 text-sm line-clamp-3">{pendencia.detalhes}</p>
+            <p className="text-gray-400 text-sm line-clamp-3 group-hover:text-gray-300 transition-colors">
+              {pendencia.detalhes}
+            </p>
           </div>
 
           {/* Status/Subtipo, Prioridade e Responsável */}
           <div className="flex flex-wrap items-center gap-2 pt-1">
             <Badge
               variant="outline"
-              className={cn("border rounded-full px-3 py-1 text-xs font-medium", getStatusColor(pendencia.subtipo))}
+              className={cn(
+                "border rounded-full px-3 py-1 text-xs font-medium shadow-sm",
+                getStatusColor(pendencia.subtipo),
+              )}
             >
               {pendencia.subtipo}
             </Badge>
@@ -206,7 +213,7 @@ export default function PendenciaCard({ pendencia, onDelete, onUpdate }: Pendenc
             <Badge
               variant="outline"
               className={cn(
-                "border rounded-full px-3 py-1 text-xs font-medium",
+                "border rounded-full px-3 py-1 text-xs font-medium shadow-sm",
                 getPrioridadeColor(pendencia.prioridade),
               )}
             >
@@ -218,7 +225,7 @@ export default function PendenciaCard({ pendencia, onDelete, onUpdate }: Pendenc
             </Badge>
 
             {pendencia.responsavel && (
-              <div className="flex items-center gap-1 text-xs text-gray-400 bg-gray-700/50 px-2 py-1 rounded-full">
+              <div className="flex items-center gap-1.5 text-xs text-gray-400 bg-gray-700/50 px-2.5 py-1 rounded-full">
                 <User className="h-3 w-3" />
                 <span>{pendencia.responsavel}</span>
               </div>
@@ -229,12 +236,12 @@ export default function PendenciaCard({ pendencia, onDelete, onUpdate }: Pendenc
           {pendencia.dataLimite && (
             <div
               className={cn(
-                "text-xs flex items-center gap-1 p-2 rounded-md",
+                "text-xs flex items-center gap-1.5 p-2.5 rounded-md",
                 isDeadlinePassed()
-                  ? "bg-red-900/20 text-red-400"
+                  ? "bg-red-900/20 text-red-300 border border-red-900/30"
                   : isDeadlineNear()
-                    ? "bg-amber-900/20 text-amber-400"
-                    : "bg-gray-700/50 text-gray-400",
+                    ? "bg-amber-900/20 text-amber-300 border border-amber-900/30"
+                    : "bg-gray-700/50 text-gray-300 border border-gray-700",
               )}
             >
               <Calendar
@@ -252,12 +259,26 @@ export default function PendenciaCard({ pendencia, onDelete, onUpdate }: Pendenc
 
           {/* Status da pendência */}
           {pendencia.status === "concluida" && (
-            <div className="text-xs bg-green-900/20 text-green-400 flex items-center gap-1 p-2 rounded-md">
-              <AlertCircle className="h-3.5 w-3.5" />
+            <div className="text-xs bg-green-900/20 text-green-300 border border-green-900/30 flex items-center gap-1.5 p-2.5 rounded-md">
+              <CheckCircle className="h-3.5 w-3.5" />
               <span>Pendência concluída</span>
             </div>
           )}
         </div>
+
+        {/* Barra de progresso/status na parte inferior */}
+        <div
+          className={cn(
+            "h-1 w-full",
+            pendencia.status === "concluida"
+              ? "bg-gradient-to-r from-green-900/50 to-green-800/30"
+              : pendencia.prioridade === "alta"
+                ? "bg-gradient-to-r from-red-900/50 to-red-800/30"
+                : pendencia.prioridade === "media"
+                  ? "bg-gradient-to-r from-amber-900/50 to-amber-800/30"
+                  : "bg-gradient-to-r from-blue-900/50 to-blue-800/30",
+          )}
+        ></div>
       </Card>
 
       {/* Modal de edição */}
