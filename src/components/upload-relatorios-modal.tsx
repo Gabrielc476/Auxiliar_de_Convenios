@@ -23,7 +23,11 @@ import {
   CheckCircle2,
   Clock,
   Download,
+  FileCheck,
+  Loader2,
+  ClipboardList,
 } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 
 interface UploadRelatorioModalProps {
   open: boolean;
@@ -42,9 +46,13 @@ export default function UploadRelatorioModal({
   const [progress, setProgress] = useState(0);
   const [uploadComplete, setUploadComplete] = useState(false);
   const [processingStatus, setProcessingStatus] = useState<
-    "idle" | "processing" | "success" | "error"
+    "idle" | "processing" | "counting" | "extracting" | "creating_pendencies" | "success" | "error"
   >("idle");
   const [error, setError] = useState<string | null>(null);
+  const [conveniosCount, setConveniosCount] = useState<number | null>(null);
+  const [processedCount, setProcessedCount] = useState<number>(0);
+  const [pendenciasCreated, setPendenciasCreated] = useState<number>(0);
+  const [pendenciasUpdated, setPendenciasUpdated] = useState<number>(0);
 
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -55,6 +63,10 @@ export default function UploadRelatorioModal({
     setUploadComplete(false);
     setProcessingStatus("idle");
     setError(null);
+    setConveniosCount(null);
+    setProcessedCount(0);
+    setPendenciasCreated(0);
+    setPendenciasUpdated(0);
   };
 
   // Reset state when modal closes
@@ -117,27 +129,44 @@ export default function UploadRelatorioModal({
   
     setUploading(true);
     setError(null);
+    setProcessingStatus("processing");
   
     try {
       // Mostrar feedback mais claro sobre processo extenso
       toast({
         title: "Processamento iniciado",
-        description: "O processamento pode levar até 1 minuto. Por favor, aguarde.",
+        description: "O processamento pode levar até 2 minutos. Por favor, aguarde.",
         duration: 10000,
       });
   
-      // Simulação de progresso mais lenta
+      // Simulação de progresso mais realista com fases
       const simulateProgress = () => {
         let currentProgress = 0;
+        const stepsMap = {
+          10: "processing",
+          30: "counting",
+          50: "extracting",
+          75: "creating_pendencies"
+        };
+        
         const interval = setInterval(() => {
           // Progresso mais lento para refletir o tempo real de processamento
-          currentProgress += Math.random() * 2;
+          currentProgress += Math.random() * 1.5;
+          
+          // Atualizar status com base no progresso
+          for (const [threshold, status] of Object.entries(stepsMap)) {
+            if (currentProgress >= Number(threshold) && currentProgress < Number(threshold) + 5) {
+              setProcessingStatus(status as any);
+            }
+          }
+          
           if (currentProgress > 90) {
             clearInterval(interval);
             currentProgress = 90; // Manter em 90% até resposta real
           }
           setProgress(currentProgress);
         }, 500);
+        
         return interval;
       };
   
@@ -146,6 +175,14 @@ export default function UploadRelatorioModal({
       try {
         // Aumentar tempo de timeout implicitamente através do service
         const response = await apiService.uploadRelatorio(file);
+        
+        // Atualizar contadores com dados reais do backend
+        if (response && response.statistics) {
+          setConveniosCount(response.statistics.totalConvenios || 0);
+          setProcessedCount(response.statistics.processedConvenios || 0);
+          setPendenciasCreated(response.statistics.pendenciasCreated || 0);
+          setPendenciasUpdated(response.statistics.pendenciasUpdated || 0);
+        }
   
         // Upload e processamento completos
         clearInterval(progressInterval);
@@ -156,7 +193,7 @@ export default function UploadRelatorioModal({
         // Notificar
         toast({
           title: "Processamento concluído",
-          description: "O relatório foi processado com sucesso!",
+          description: `${response.statistics?.totalConvenios || "Múltiplos"} convênios processados com sucesso!`,
           variant: "default",
         });
   
@@ -181,27 +218,42 @@ export default function UploadRelatorioModal({
       setUploading(false);
     }
   };
-  const getStatusIcon = () => {
+
+  const getStatusMessage = () => {
     switch (processingStatus) {
       case "processing":
-        return <Clock className="h-8 w-8 text-blue-400 animate-pulse" />;
+        return "Iniciando processamento do arquivo...";
+      case "counting":
+        return "Identificando convênios no relatório...";
+      case "extracting":
+        return conveniosCount 
+          ? `Extraindo dados de ${processedCount}/${conveniosCount} convênios...` 
+          : "Extraindo dados dos convênios...";
+      case "creating_pendencies":
+        return "Criando pendências automáticas...";
       case "success":
-        return <CheckCircle2 className="h-8 w-8 text-green-500" />;
+        return "Processamento concluído com sucesso!";
       case "error":
-        return <AlertTriangle className="h-8 w-8 text-red-500" />;
+        return error || "Ocorreu um erro no processamento.";
       default:
         return null;
     }
   };
 
-  const getStatusMessage = () => {
+  const getStatusIcon = () => {
     switch (processingStatus) {
       case "processing":
-        return "Processando o relatório...";
+        return <Clock className="h-8 w-8 text-blue-400 animate-pulse" />;
+      case "counting":
+        return <FileText className="h-8 w-8 text-blue-400 animate-pulse" />;
+      case "extracting":
+        return <FileText className="h-8 w-8 text-amber-400 animate-pulse" />;
+      case "creating_pendencies":
+        return <ClipboardList className="h-8 w-8 text-purple-400 animate-pulse" />;
       case "success":
-        return "Processamento concluído com sucesso!";
+        return <CheckCircle2 className="h-8 w-8 text-green-500" />;
       case "error":
-        return error || "Ocorreu um erro no processamento.";
+        return <AlertTriangle className="h-8 w-8 text-red-500" />;
       default:
         return null;
     }
@@ -295,16 +347,35 @@ export default function UploadRelatorioModal({
                   </div>
 
                   {uploading && (
-                    <div className="space-y-3 mt-4">
-                      <div className="flex justify-between text-sm">
-                        <span className="text-gray-400">
-                          Enviando arquivo...
-                        </span>
+                    <div className="space-y-4 mt-4">
+                      <div className="flex justify-between text-sm items-center">
+                        <div className="flex items-center gap-2">
+                          {getStatusIcon()}
+                          <span className="text-gray-300 font-medium">{getStatusMessage()}</span>
+                        </div>
                         <span className="text-white font-medium">
                           {Math.round(progress)}%
                         </span>
                       </div>
                       <Progress value={progress} className="h-2" />
+                      
+                      {/* Contador de convênios processados */}
+                      {(processingStatus === "extracting" || processingStatus === "creating_pendencies") && (
+                        <div className="bg-gray-750 p-3 rounded-lg space-y-2 border border-gray-700">
+                          {conveniosCount !== null && (
+                            <div className="flex justify-between items-center">
+                              <span className="text-sm text-gray-400">Convênios identificados:</span>
+                              <Badge className="bg-blue-600">{conveniosCount}</Badge>
+                            </div>
+                          )}
+                          {processedCount > 0 && (
+                            <div className="flex justify-between items-center">
+                              <span className="text-sm text-gray-400">Convênios processados:</span>
+                              <Badge className="bg-emerald-600">{processedCount}</Badge>
+                            </div>
+                          )}
+                        </div>
+                      )}
                     </div>
                   )}
 
@@ -316,8 +387,8 @@ export default function UploadRelatorioModal({
                     >
                       {uploading ? (
                         <>
-                          <div className="mr-2 h-4 w-4 rounded-full border-2 border-current border-t-transparent animate-spin"></div>
-                          Enviando...
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          Processando...
                         </>
                       ) : (
                         <>
@@ -339,7 +410,7 @@ export default function UploadRelatorioModal({
               )}
             </>
           ) : (
-            <div className="flex flex-col items-center py-6 space-y-4 text-center">
+            <div className="flex flex-col items-center py-6 space-y-6 text-center">
               {getStatusIcon()}
 
               <h3 className="text-xl font-medium text-white mt-2">
@@ -347,16 +418,46 @@ export default function UploadRelatorioModal({
               </h3>
 
               {processingStatus === "success" && (
-                <p className="text-gray-400 max-w-md">
-                  Os dados foram extraídos com sucesso e os convênios foram
-                  atualizados no sistema.
-                </p>
+                <>
+                  <div className="bg-gray-750 p-4 rounded-lg w-full border border-gray-700">
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <div className="flex items-center gap-2">
+                          <FileCheck className="h-4 w-4 text-blue-400" />
+                          <h4 className="text-white font-medium text-left">Convênios</h4>
+                        </div>
+                        <div className="flex justify-between items-center text-sm">
+                          <span className="text-gray-400">Total processados:</span>
+                          <Badge className="bg-emerald-600">{conveniosCount || 0}</Badge>
+                        </div>
+                      </div>
+                      
+                      <div className="space-y-2">
+                        <div className="flex items-center gap-2">
+                          <ClipboardList className="h-4 w-4 text-purple-400" />
+                          <h4 className="text-white font-medium text-left">Pendências</h4>
+                        </div>
+                        <div className="flex justify-between items-center text-sm">
+                          <span className="text-gray-400">Criadas:</span>
+                          <Badge className="bg-blue-600">{pendenciasCreated || 0}</Badge>
+                        </div>
+                        <div className="flex justify-between items-center text-sm">
+                          <span className="text-gray-400">Atualizadas:</span>
+                          <Badge className="bg-amber-600">{pendenciasUpdated || 0}</Badge>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <p className="text-gray-400 max-w-md">
+                    Todos os convênios e pendências foram processados com sucesso e já estão disponíveis no sistema.
+                  </p>
+                </>
               )}
 
               {processingStatus === "error" && (
                 <p className="text-red-400 max-w-md">
-                  Não foi possível processar o arquivo. Verifique se o formato
-                  está correto e tente novamente.
+                  Não foi possível processar o arquivo. Verifique se o formato está correto e tente novamente.
                 </p>
               )}
 
