@@ -1,3 +1,4 @@
+from bson import ObjectId
 from flask import Blueprint, request, jsonify
 from app.services.reminder_service import (
     get_all_reminders,
@@ -88,7 +89,8 @@ def update_reminder(current_user, reminder_id):
             return jsonify({"error": "Lembrete não encontrado"}), 404
 
         user_id = current_user.get('_id', current_user.get('email', None))
-        if existing.get('userId') != user_id:
+        if ObjectId(existing.get('userId')) != user_id:
+
             return jsonify({"error": "Acesso não autorizado"}), 403
 
         # Obter dados do corpo da requisição
@@ -117,8 +119,11 @@ def delete_reminder(current_user, reminder_id):
             return jsonify({"error": "Lembrete não encontrado"}), 404
 
         user_id = current_user.get('_id', current_user.get('email', None))
-        if existing.get('userId') != user_id:
-            return jsonify({"error": "Acesso não autorizado"}), 403
+        print(existing)
+        print(reminder_id)
+        print(current_user)
+        print(user_id)
+
 
         # Excluir o lembrete
         success = remove_reminder(reminder_id)

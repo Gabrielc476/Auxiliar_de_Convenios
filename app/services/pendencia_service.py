@@ -3,10 +3,11 @@ from app.database.repositories.pendencia_repo import (
     get_pendencia_by_id,
     create_pendencia,
     update_pendencia,
-    delete_pendencia
+    delete_pendencia,
+    find_pendencia_by_description  # Adicionado esta importação
 )
 from app.utils.converters import convert_object_ids
-from app.models.schemas import Pendencia, PendenciaCreate, PendenciaUpdate
+from app.models.schemas import PendenciaType, PendenciaCreate, PendenciaUpdate
 
 
 def get_pendencias_for_convenio(convenio_id: str, municipio_id: str = None):
@@ -83,3 +84,13 @@ def delete_existing_pendencia(pendencia_id: str):
         return {"success": True, "message": "Pendência excluída com sucesso"}
     except Exception as e:
         raise Exception(f"Erro ao excluir pendência: {str(e)}")
+
+
+def find_pendencia_by_description_service(convenio_id: str, municipio_id: str, descricao: str):
+    """Buscar uma pendência pela descrição para um convênio específico."""
+    try:
+        pendencia = find_pendencia_by_description(convenio_id, municipio_id, descricao)
+        return convert_object_ids(pendencia) if pendencia else None
+    except Exception as e:
+        print(f"Erro ao buscar pendência por descrição: {e}")
+        return None

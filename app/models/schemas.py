@@ -56,66 +56,32 @@ class UserResponse(BaseModel):
     municipios: List[str]
     token: Optional[str] = None
 
-# Enums para pendências
-class PendenciaTipo(str, Enum):
-    PRESTACAO_CONTAS = "Prestação de Contas"
-    LICITACAO = "Licitação"
-    EXECUCAO = "Execução"
-    DOCUMENTACAO = "Documentação"
-    OUTRO = "Outro"
+from typing import List, Optional, Literal
+from pydantic import BaseModel, validator
+from datetime import datetime
 
+# Define literals para tipos restritos
+PendenciaTipo = Literal["Prestação de Contas", "Licitação", "Execução", "Documentação", "Outro"]
+PendenciaSubtipo = Literal["Aguardando Documentos", "Em Análise", "Urgente", "Concluído", "Pendente"]
+PendenciaStatus = Literal["aberta", "concluida"]
+PendenciaPrioridade = Literal["baixa", "media", "alta"]
 
-class PendenciaSubtipo(str, Enum):
-    AGUARDANDO_DOCUMENTOS = "Aguardando Documentos"
-    EM_ANALISE = "Em Análise"
-    URGENTE = "Urgente"
-    CONCLUIDO = "Concluído"
-    PENDENTE = "Pendente"
-    OUTRO = "Outro"
-
-
-class PendenciaStatus(str, Enum):
-    ABERTA = "aberta"
-    CONCLUIDA = "concluida"
-
-
-class PendenciaPrioridade(str, Enum):
-    BAIXA = "baixa"
-    MEDIA = "media"
-    ALTA = "alta"
-
-
-# Esquema para criação de pendência
-class PendenciaCreate(BaseModel):
+class NovaPendenciaType(BaseModel):
     convenioId: str
     municipioId: str
-    tipo: str  # Usando string para permitir valores fora do enum
-    subtipo: str  # Usando string para permitir valores fora do enum
+    tipo: PendenciaTipo
+    subtipo: str
     descricao: str
     detalhes: str
     responsavel: Optional[str] = None
     dataLimite: Optional[str] = None
-    prioridade: str  # baixa, media, alta
+    prioridade: PendenciaPrioridade
 
-
-# Esquema para atualização de pendência
-class PendenciaUpdate(BaseModel):
-    tipo: Optional[str] = None
-    subtipo: Optional[str] = None
-    descricao: Optional[str] = None
-    detalhes: Optional[str] = None
-    responsavel: Optional[str] = None
-    dataLimite: Optional[str] = None
-    status: Optional[str] = None
-    prioridade: Optional[str] = None
-
-
-# Esquema para pendência completa (resposta)
-class Pendencia(BaseModel):
+class PendenciaType(BaseModel):
     id: str
     convenioId: str
     municipioId: str
-    tipo: str
+    tipo: PendenciaTipo
     subtipo: str
     descricao: str
     detalhes: str
@@ -123,5 +89,43 @@ class Pendencia(BaseModel):
     dataCriacao: str
     dataAtualizacao: str
     dataLimite: Optional[str] = None
-    status: str  # aberta, concluida
-    prioridade: str  # baixa, media, alta
+    status: PendenciaStatus
+    prioridade: PendenciaPrioridade
+
+    @validator('dataCriacao', 'dataAtualizacao', pre=True)
+    def validate_dates(cls, v):
+        if isinstance(v, datetime):
+            return v.isoformat()
+        return v
+
+# Para operações de criação e atualização
+class PendenciaCreate(BaseModel):
+    convenioId: str
+    municipioId: str
+    tipo: PendenciaTipo
+    subtipo: str
+    descricao: str
+    detalhes: str
+    responsavel: Optional[str] = None
+    dataLimite: Optional[str] = None
+    prioridade: PendenciaPrioridade
+
+class PendenciaUpdate(BaseModel):
+    tipo: Optional[PendenciaTipo] = None
+    subtipo: Optional[str] = None
+    descricao: Optional[str] = None
+    detalhes: Optional[str] = None
+    responsavel: Optional[str] = None
+    dataLimite: Optional[str] = None
+    status: Optional[PendenciaStatus] = None
+    prioridade: Optional[PendenciaPrioridade] = None
+
+# Estruturas para estatísticas de processamento
+class ProcessingStatistics(BaseModel):
+    totalConvenios: int
+    processedConvenios: int
+    pendenciasCreated: int
+    pendenciasUpdated: int
+
+class MunicipioWithStats(Municipio):  # Assumindo que Municipio já está definido
+    statistics: Optional[ProcessingStatistics] = None

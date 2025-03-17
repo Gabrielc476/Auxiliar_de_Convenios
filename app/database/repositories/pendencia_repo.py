@@ -1,7 +1,7 @@
 from app.database.connection import get_collection
 from bson import ObjectId
 from app.utils.converters import convert_object_ids
-from app.models.schemas import Pendencia, PendenciaCreate, PendenciaUpdate
+from app.models.schemas import PendenciaType, PendenciaCreate, PendenciaUpdate
 from datetime import datetime
 import uuid
 
@@ -121,3 +121,24 @@ def delete_pendencia(pendencia_id: str):
     except Exception as e:
         print(f"Erro ao excluir pendência: {e}")
         return False
+
+
+def find_pendencia_by_description(convenio_id: str, municipio_id: str, descricao: str):
+    """Buscar uma pendência pela descrição para um convênio específico."""
+    try:
+        pendencias = get_collection("pendencias")
+
+        # Criar filtro combinando convênio, município e descrição
+        filtro = {
+            "convenioId": convenio_id,
+            "municipioId": municipio_id,
+            "descricao": descricao
+        }
+
+        # Buscar pendência
+        pendencia = pendencias.find_one(filtro)
+
+        return convert_object_ids(pendencia) if pendencia else None
+    except Exception as e:
+        print(f"Erro ao buscar pendência por descrição: {e}")
+        return None
